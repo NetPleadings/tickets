@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Event, Allocation } from '$lib/types';
-	import { formatDate, isUpcoming } from '$lib/utils';
+	import { formatDate, isUpcoming, buildAllocsByEvent, countStatuses, seatDotColor } from '$lib/utils';
 	import { teamAbbrevs } from '$lib/data/schedule';
 	import { promotions, promoColor } from '$lib/data/promotions';
 
@@ -11,12 +11,10 @@
 
 	let { events, allocations }: Props = $props();
 
-	function allocsForEvent(eventId: string) {
-		return allocations.filter((a) => a.eventId === eventId);
-	}
+	const allocsByEvent = $derived(buildAllocsByEvent(allocations));
 
 	// Group events by month
-	const grouped = $derived(() => {
+	const grouped = $derived.by(() => {
 		const groups = new Map<string, Event[]>();
 		for (const e of events) {
 			const key = e.date.substring(0, 7);
@@ -33,23 +31,20 @@
 </script>
 
 <div class="space-y-6">
-	{#each [...grouped().entries()] as [monthKey, monthEvents] (monthKey)}
+	{#each [...grouped.entries()] as [monthKey, monthEvents] (monthKey)}
 		<div>
 			<h3 class="font-display font-semibold text-graphite text-sm mb-2 px-1">{monthLabel(monthKey)}</h3>
 			<div class="bg-white rounded-xl border border-crystal-pale shadow-sm overflow-hidden divide-y divide-crystal-pale/60">
 				{#each monthEvents as event (event.id)}
-					{@const allocs = allocsForEvent(event.id)}
-					{@const confirmed = allocs.filter((a) => a.status === 'confirmed').length}
-					{@const pending = allocs.filter((a) => a.status === 'pending').length}
-					{@const restrictedCount = allocs.filter((a) => a.status === 'restricted').length}
-					{@const available = event.totalSeats - confirmed - pending}
+					{@const allocs = allocsByEvent.get(event.id) ?? []}
+					{@const counts = countStatuses(allocs)}
+					{@const available = event.totalSeats - counts.confirmed - counts.pending}
 					{@const past = !isUpcoming(event.date)}
 					{@const promos = promotions[event.date] ?? []}
 					<a
 						href="/game/{event.id}"
 						class="flex items-center gap-4 px-4 py-3 hover:bg-crystal/50 transition-colors group {past ? 'opacity-50' : ''}"
 					>
-						<!-- Date block -->
 						<div class="w-12 text-center shrink-0">
 							<div class="text-[10px] uppercase tracking-wider text-slate font-body">
 								{new Date(event.date + 'T12:00:00').toLocaleDateString('en-CA', { weekday: 'short' })}
@@ -61,7 +56,6 @@
 
 						<div class="w-px h-8 bg-crystal-pale"></div>
 
-						<!-- Opponent -->
 						<div class="flex-1 min-w-0">
 							<div class="flex items-center gap-2">
 								<span class="font-display font-semibold text-graphite text-sm group-hover:text-jays-blue transition-colors">
@@ -86,12 +80,10 @@
 							</div>
 						</div>
 
-						<!-- Seat dots -->
 						<div class="flex items-center gap-3 shrink-0">
 							<div class="flex gap-1">
 								{#each Array(event.totalSeats) as _, si}
-									{@const color = si < confirmed ? 'bg-confirmed' : si < confirmed + pending ? 'bg-pending' : si < confirmed + pending + restrictedCount ? 'bg-graphite/40' : 'bg-crystal-pale'}
-									<div class="w-2.5 h-2.5 rounded-full {color} transition-transform group-hover:scale-110"></div>
+									<div class="w-2.5 h-2.5 rounded-full {seatDotColor(si, counts)} transition-transform group-hover:scale-110"></div>
 								{/each}
 							</div>
 							{#if available > 0 && !past}
