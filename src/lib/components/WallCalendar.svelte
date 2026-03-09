@@ -1,8 +1,7 @@
 <script lang="ts">
 	import type { Event, Allocation } from '$lib/types';
-	import { teamAbbrevs } from '$lib/data/schedule';
 	import { promotions } from '$lib/data/promotions';
-	import { isUpcoming } from '$lib/utils';
+	import { toDateStr, todayDateStr, isUpcoming, buildEventsByDate, buildAllocsByEvent, countStatuses, seatDotColor } from '$lib/utils';
 
 	interface Props {
 		events: Event[];
@@ -15,8 +14,11 @@
 	const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 	const weekdayShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-	// Build a 31×12 grid: rows = day-of-month (1–31), cols = month (0–11)
-	const grid = $derived(() => {
+	const eventsByDate = $derived(buildEventsByDate(events));
+	const allocsByEvent = $derived(buildAllocsByEvent(allocations));
+	const todayStr = todayDateStr();
+
+	const grid = $derived.by(() => {
 		const cells: (null | {
 			dateStr: string;
 			weekday: number;
@@ -27,11 +29,10 @@
 			const row: typeof cells[0] = [];
 			for (let month = 0; month < 12; month++) {
 				const d = new Date(year, month, day + 1);
-				// Check if day is valid for this month
 				if (d.getMonth() !== month) {
 					row.push(null);
 				} else {
-					const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day + 1).padStart(2, '0')}`;
+					const dateStr = toDateStr(year, month, day + 1);
 					const dow = d.getDay();
 					row.push({
 						dateStr,
@@ -44,44 +45,28 @@
 		}
 		return cells;
 	});
-
-	function eventsOnDate(dateStr: string) {
-		return events.filter((e) => e.date === dateStr);
-	}
-
-	function allocsForEvent(eventId: string) {
-		return allocations.filter((a) => a.eventId === eventId);
-	}
-
-	const today = new Date();
-	const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 </script>
 
 <div class="wall-calendar">
-	<!-- Header: month names -->
 	<div class="wall-header">
 		<div class="wall-row-label"></div>
-		{#each monthNames as m, i}
+		{#each monthNames as m}
 			<div class="wall-month-header">{m}</div>
 		{/each}
 	</div>
 
-	<!-- Body: 31 rows × 12 cols -->
-	{#each grid() as row, dayIdx}
+	{#each grid as row, dayIdx}
 		<div class="wall-row">
 			<div class="wall-row-label">{String(dayIdx + 1).padStart(2, '0')}</div>
-			{#each row as cell, monthIdx}
+			{#each row as cell}
 				{#if cell === null}
 					<div class="wall-cell wall-empty"></div>
 				{:else}
-					{@const dayEvents = eventsOnDate(cell.dateStr)}
-					{@const hasGame = dayEvents.length > 0}
-					{@const isToday = cell.dateStr === todayStr}
-					{@const event = dayEvents[0]}
-					{@const allocs = event ? allocsForEvent(event.id) : []}
-					{@const confirmed = allocs.filter((a) => a.status === 'confirmed').length}
-					{@const pending = allocs.filter((a) => a.status === 'pending').length}
-					{@const restrictedCount = allocs.filter((a) => a.status === 'restricted').length}
+					{@const event = eventsByDate.get(cell.dateStr)}
+					{@const hasGame = !!event}
+					{@const isTodayCell = cell.dateStr === todayStr}
+					{@const allocs = event ? (allocsByEvent.get(event.id) ?? []) : []}
+					{@const counts = countStatuses(allocs)}
 					{@const past = !isUpcoming(cell.dateStr)}
 					{@const promos = promotions[cell.dateStr] ?? []}
 
@@ -91,17 +76,17 @@
 							class="wall-cell wall-game
 								{event.isMarquee ? 'wall-marquee' : 'wall-regular'}
 								{past ? 'opacity-40' : ''}
-								{isToday ? 'wall-today' : ''}"
+								{isTodayCell ? 'wall-today' : ''}"
 							title="{weekdayShort[cell.weekday]} · vs {event.opponent} · {event.time}{promos.length > 0 ? ` · ${promos.map(p => p.name).join(', ')}` : ''}"
 						>
 							<span class="wall-dow">{weekdayShort[cell.weekday].substring(0, 2)}</span>
 							{#if promos.length > 0}
 								<span class="wall-promo-dot"></span>
 							{/if}
-							{#if confirmed > 0 || pending > 0}
+							{#if counts.confirmed > 0 || counts.pending > 0}
 								<span class="wall-seat-dots">
 									{#each Array(event.totalSeats) as _, si}
-										<span class="wall-seat-dot {si < confirmed ? 'bg-confirmed' : si < confirmed + pending ? 'bg-pending' : si < confirmed + pending + restrictedCount ? 'bg-graphite/50' : 'bg-white/30'}"></span>
+										<span class="wall-seat-dot {seatDotColor(si, counts, 'bg-white/30')}"></span>
 									{/each}
 								</span>
 							{/if}
@@ -110,7 +95,7 @@
 						<div
 							class="wall-cell
 								{cell.isWeekend ? 'wall-weekend' : ''}
-								{isToday ? 'wall-today' : ''}"
+								{isTodayCell ? 'wall-today' : ''}"
 						>
 							<span class="wall-dow">{weekdayShort[cell.weekday].substring(0, 2)}</span>
 						</div>
@@ -225,7 +210,6 @@
 		flex-shrink: 0;
 	}
 
-	/* Game cells */
 	.wall-game {
 		text-decoration: none;
 	}

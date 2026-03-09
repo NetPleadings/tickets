@@ -1,8 +1,14 @@
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import type { Event, Allocation } from '$lib/types';
 
-export function cn(...inputs: ClassValue[]) {
-	return twMerge(clsx(inputs));
+// --- Date helpers ---
+
+export function toDateStr(year: number, month: number, day: number): string {
+	return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+export function todayDateStr(): string {
+	const t = new Date();
+	return toDateStr(t.getFullYear(), t.getMonth(), t.getDate());
 }
 
 export function formatDate(dateStr: string): string {
@@ -29,9 +35,7 @@ export function getDayOfMonth(dateStr: string): number {
 }
 
 export function isToday(dateStr: string): boolean {
-	const today = new Date();
-	const d = new Date(dateStr + 'T12:00:00');
-	return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+	return dateStr === todayDateStr();
 }
 
 export function isUpcoming(dateStr: string): boolean {
@@ -43,6 +47,8 @@ export function isUpcoming(dateStr: string): boolean {
 export function isPast(dateStr: string): boolean {
 	return !isUpcoming(dateStr);
 }
+
+// --- Calendar grid helpers ---
 
 export function getMonthDays(year: number, month: number): { date: string; inMonth: boolean }[] {
 	const firstDay = new Date(year, month, 1);
@@ -74,11 +80,68 @@ export function getMonthDays(year: number, month: number): { date: string; inMon
 	return days;
 }
 
-export function statusDot(status: string): string {
+// --- Allocation helpers ---
+
+export function eventsOnDate(events: Event[], dateStr: string): Event[] {
+	return events.filter((e) => e.date === dateStr);
+}
+
+export function allocsForEvent(allocations: Allocation[], eventId: string): Allocation[] {
+	return allocations.filter((a) => a.eventId === eventId);
+}
+
+export interface StatusCounts {
+	confirmed: number;
+	pending: number;
+	restricted: number;
+	declined: number;
+}
+
+export function countStatuses(allocs: Allocation[]): StatusCounts {
+	let confirmed = 0, pending = 0, restricted = 0, declined = 0;
+	for (const a of allocs) {
+		if (a.status === 'confirmed') confirmed++;
+		else if (a.status === 'pending') pending++;
+		else if (a.status === 'restricted') restricted++;
+		else if (a.status === 'declined') declined++;
+	}
+	return { confirmed, pending, restricted, declined };
+}
+
+export function seatDotColor(index: number, counts: StatusCounts, emptyClass = 'bg-crystal-pale'): string {
+	const { confirmed, pending, restricted } = counts;
+	if (index < confirmed) return 'bg-confirmed';
+	if (index < confirmed + pending) return 'bg-pending';
+	if (index < confirmed + pending + restricted) return 'bg-graphite/40';
+	return emptyClass;
+}
+
+export function statusDot(status: Allocation['status']): string {
 	switch (status) {
 		case 'confirmed': return 'bg-confirmed';
 		case 'pending': return 'bg-pending';
 		case 'declined': return 'bg-declined';
+		case 'restricted': return 'bg-graphite/40';
 		default: return 'bg-silver';
 	}
+}
+
+// --- Lookup map builders ---
+
+export function buildEventsByDate(events: Event[]): Map<string, Event> {
+	return new Map(events.map((e) => [e.date, e]));
+}
+
+export function buildAllocsByEvent(allocations: Allocation[]): Map<string, Allocation[]> {
+	const map = new Map<string, Allocation[]>();
+	for (const a of allocations) {
+		const arr = map.get(a.eventId);
+		if (arr) arr.push(a);
+		else map.set(a.eventId, [a]);
+	}
+	return map;
+}
+
+export function buildEventsById(events: Event[]): Map<string, Event> {
+	return new Map(events.map((e) => [e.id, e]));
 }

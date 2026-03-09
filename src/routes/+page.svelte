@@ -40,14 +40,13 @@
 	);
 
 	const upcoming = $derived(events.filter((e) => isUpcoming(e.date)));
+	const upcomingIds = $derived(new Set(upcoming.map((e) => e.id)));
 	const totalSeats = $derived(upcoming.length * 4);
-	const confirmedCount = $derived(
-		$allocations.filter((a) => a.status === 'confirmed' && upcoming.some((e) => e.id === a.eventId)).length
-	);
-	const pendingCount = $derived(
-		$allocations.filter((a) => a.status === 'pending' && upcoming.some((e) => e.id === a.eventId)).length
-	);
-	const availableCount = $derived(totalSeats - confirmedCount - pendingCount);
+	const upcomingAllocs = $derived($allocations.filter((a) => upcomingIds.has(a.eventId)));
+	const confirmedCount = $derived(upcomingAllocs.filter((a) => a.status === 'confirmed').length);
+	const pendingCount = $derived(upcomingAllocs.filter((a) => a.status === 'pending').length);
+	const restrictedCount = $derived(upcomingAllocs.filter((a) => a.status === 'restricted').length);
+	const availableCount = $derived(totalSeats - confirmedCount - pendingCount - restrictedCount);
 
 	const nextGame = $derived(upcoming[0]);
 	const nextGameAllocs = $derived(nextGame ? $allocations.filter((a) => a.eventId === nextGame.id) : []);

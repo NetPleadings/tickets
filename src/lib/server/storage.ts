@@ -3,8 +3,6 @@ import { join } from 'path';
 import type { Allocation, Guest } from '$lib/types';
 
 const DATA_DIR = join(process.cwd(), 'data');
-const ALLOCATIONS_FILE = join(DATA_DIR, 'allocations.json');
-const GUESTS_FILE = join(DATA_DIR, 'guests.json');
 
 function ensureDataDir() {
 	if (!existsSync(DATA_DIR)) {
@@ -12,32 +10,23 @@ function ensureDataDir() {
 	}
 }
 
-export function loadAllocations(): Allocation[] {
+function loadJson<T>(filename: string): T[] {
 	ensureDataDir();
-	if (!existsSync(ALLOCATIONS_FILE)) return [];
+	const file = join(DATA_DIR, filename);
+	if (!existsSync(file)) return [];
 	try {
-		return JSON.parse(readFileSync(ALLOCATIONS_FILE, 'utf-8'));
+		return JSON.parse(readFileSync(file, 'utf-8'));
 	} catch {
 		return [];
 	}
 }
 
-export function saveAllocations(allocations: Allocation[]) {
+function saveJson<T>(filename: string, data: T[]) {
 	ensureDataDir();
-	writeFileSync(ALLOCATIONS_FILE, JSON.stringify(allocations, null, 2));
+	writeFileSync(join(DATA_DIR, filename), JSON.stringify(data, null, 2));
 }
 
-export function loadGuests(): Guest[] {
-	ensureDataDir();
-	if (!existsSync(GUESTS_FILE)) return [];
-	try {
-		return JSON.parse(readFileSync(GUESTS_FILE, 'utf-8'));
-	} catch {
-		return [];
-	}
-}
-
-export function saveGuests(guests: Guest[]) {
-	ensureDataDir();
-	writeFileSync(GUESTS_FILE, JSON.stringify(guests, null, 2));
-}
+export const loadAllocations = () => loadJson<Allocation>('allocations.json');
+export const saveAllocations = (data: Allocation[]) => saveJson('allocations.json', data);
+export const loadGuests = () => loadJson<Guest>('guests.json');
+export const saveGuests = (data: Guest[]) => saveJson('guests.json', data);
