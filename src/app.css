@@ -1,0 +1,79 @@
+@import 'tailwindcss';
+
+@theme {
+	/* MinuteBox Brand */
+	--color-yellow: #FFD504;
+	--color-graphite: #262F3C;
+	--color-bronze: #332500;
+	--color-gold: #B89300;
+	--color-yellow-bright: #FFDF0B;
+	--color-yellow-light: #FFEE98;
+	--color-yellow-pale: #FFF8CC;
+	--color-graphite-deep: #3D4755;
+	--color-slate: #79828C;
+	--color-silver: #A3A8B2;
+	--color-crystal-pale: #CACFD8;
+	--color-crystal: #F0F5FC;
+
+	/* Blue Jays accent */
+	--color-jays-blue: #134A8E;
+	--color-jays-navy: #1D2D5C;
+	--color-jays-red: #E8291C;
+	--color-jays-light: #E3EDF7;
+
+	/* Semantic */
+	--color-available: #16A34A;
+	--color-pending: #D97706;
+	--color-declined: #DC2626;
+	--color-confirmed: #059669;
+
+	/* Fonts */
+	--font-display: 'Rubik', system-ui, sans-serif;
+	--font-body: 'Archivo', system-ui, sans-serif;
+}
+
+body {
+	font-family: var(--font-body);
+	background-color: #F8F9FB;
+	color: var(--color-graphite);
+	-webkit-font-smoothing: antialiased;
+}
+
+/* Subtle grain texture overlay */
+body::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	opacity: 0.015;
+	background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+	z-index: 9999;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-silver); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-slate); }
+
+/* Calendar grid animations */
+@keyframes fadeSlideUp {
+	from { opacity: 0; transform: translateY(8px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+	animation: fadeSlideUp 0.3s ease-out both;
+}
+
+/* Stagger children */
+.stagger > * {
+	animation: fadeSlideUp 0.3s ease-out both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.04s; }
+.stagger > *:nth-child(3) { animation-delay: 0.06s; }
+.stagger > *:nth-child(4) { animation-delay: 0.08s; }
+.stagger > *:nth-child(5) { animation-delay: 0.10s; }
+.stagger > *:nth-child(6) { animation-delay: 0.12s; }
+.stagger > *:nth-child(7) { animation-delay: 0.14s; }
