@@ -1,12 +1,12 @@
 <script lang="ts">
 	import type { Event, Allocation } from '$lib/types';
-	import { getMonthDays, getDayOfMonth, isToday, isUpcoming, formatMonthYear } from '$lib/utils';
+	import { getMonthDays, getDayOfMonth, isToday, isUpcoming, formatMonthYear, buildEventsByDate, buildAllocsByEvent, countStatuses, seatDotColor } from '$lib/utils';
 	import { teamAbbrevs } from '$lib/data/schedule';
 
 	interface Props {
 		events: Event[];
 		allocations: Allocation[];
-		month: number; // 0-indexed
+		month: number;
 		year: number;
 		onPrev: () => void;
 		onNext: () => void;
@@ -17,25 +17,11 @@
 	const days = $derived(getMonthDays(year, month));
 	const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-	function eventsOnDate(date: string) {
-		return events.filter((e) => e.date === date);
-	}
-
-	function allocsForEvent(eventId: string) {
-		return allocations.filter((a) => a.eventId === eventId);
-	}
-
-	function seatIndicator(event: Event) {
-		const allocs = allocsForEvent(event.id);
-		const confirmed = allocs.filter((a) => a.status === 'confirmed').length;
-		const pending = allocs.filter((a) => a.status === 'pending').length;
-		const available = event.totalSeats - confirmed - pending;
-		return { confirmed, pending, available };
-	}
+	const eventsByDate = $derived(buildEventsByDate(events));
+	const allocsByEvent = $derived(buildAllocsByEvent(allocations));
 </script>
 
 <div class="bg-white rounded-xl border border-crystal-pale shadow-sm overflow-hidden">
-	<!-- Month header -->
 	<div class="flex items-center justify-between px-5 py-3 border-b border-crystal-pale bg-crystal/50">
 		<button onclick={onPrev} aria-label="Previous month" class="p-1.5 rounded-lg hover:bg-crystal-pale transition-colors text-slate hover:text-graphite">
 			<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -52,7 +38,6 @@
 		</button>
 	</div>
 
-	<!-- Weekday headers -->
 	<div class="grid grid-cols-7 border-b border-crystal-pale">
 		{#each weekdays as day}
 			<div class="px-2 py-2 text-center text-[11px] font-semibold text-slate uppercase tracking-wider font-body">
@@ -61,10 +46,10 @@
 		{/each}
 	</div>
 
-	<!-- Calendar grid -->
 	<div class="grid grid-cols-7">
 		{#each days as day, i}
-			{@const dayEvents = eventsOnDate(day.date)}
+			{@const event = eventsByDate.get(day.date)}
+			{@const dayEvents = event ? [event] : []}
 			{@const today = isToday(day.date)}
 			{@const past = !isUpcoming(day.date)}
 			<div
@@ -77,25 +62,25 @@
 					{getDayOfMonth(day.date)}
 				</div>
 
-				{#each dayEvents as event}
-					{@const { confirmed, pending, available } = seatIndicator(event)}
+				{#each dayEvents as ev}
+					{@const allocs = allocsByEvent.get(ev.id) ?? []}
+					{@const counts = countStatuses(allocs)}
 					<a
-						href="/game/{event.id}"
+						href="/game/{ev.id}"
 						class="block rounded-md px-1.5 py-1 mb-0.5 text-[11px] leading-tight transition-all hover:scale-[1.02] hover:shadow-sm
-							{event.isMarquee
+							{ev.isMarquee
 								? 'bg-jays-navy text-white hover:bg-jays-blue'
 								: 'bg-jays-light text-jays-navy hover:bg-jays-blue/20'}
 							{past ? 'opacity-50' : ''}"
 					>
 						<div class="font-semibold truncate">
-							vs {teamAbbrevs[event.opponent ?? ''] ?? event.opponent}
+							vs {teamAbbrevs[ev.opponent ?? ''] ?? ev.opponent}
 						</div>
 						<div class="flex items-center justify-between mt-0.5">
-							<span class="opacity-70">{event.time}</span>
+							<span class="opacity-70">{ev.time}</span>
 							<div class="flex gap-px">
-								{#each Array(event.totalSeats) as _, si}
-									{@const color = si < confirmed ? 'bg-confirmed' : si < confirmed + pending ? 'bg-pending' : 'bg-silver/40'}
-									<div class="w-1.5 h-1.5 rounded-full {color}"></div>
+								{#each Array(ev.totalSeats) as _, si}
+									<div class="w-1.5 h-1.5 rounded-full {seatDotColor(si, counts, 'bg-silver/40')}"></div>
 								{/each}
 							</div>
 						</div>

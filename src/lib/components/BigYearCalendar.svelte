@@ -2,7 +2,7 @@
 	import type { Event, Allocation } from '$lib/types';
 	import { teamAbbrevs } from '$lib/data/schedule';
 	import { promotions } from '$lib/data/promotions';
-	import { isUpcoming } from '$lib/utils';
+	import { toDateStr, todayDateStr, isUpcoming, buildEventsByDate, buildAllocsByEvent, countStatuses, seatDotColor } from '$lib/utils';
 
 	interface Props {
 		events: Event[];
@@ -21,7 +21,7 @@
 		date: Date;
 		dateStr: string;
 		day: number;
-		weekday: number; // 0=Sun
+		weekday: number;
 		month: number;
 		isFirstOfMonth: boolean;
 		isWeekend: boolean;
@@ -30,26 +30,25 @@
 		isWeekend: boolean;
 	};
 
-	// Build grid: pad start to Monday, all days, pad end to Sunday
-	const grid = $derived(() => {
+	const eventsByDate = $derived(buildEventsByDate(events));
+	const allocsByEvent = $derived(buildAllocsByEvent(allocations));
+	const todayStr = todayDateStr();
+
+	const grid = $derived.by(() => {
 		const cells: Cell[] = [];
 		const jan1 = new Date(year, 0, 1);
-		// JS getDay: 0=Sun. We want Monday-start, so Mon=0 col.
-		// Pad count: how many days before Jan 1 to reach previous Monday
-		const jan1Dow = jan1.getDay(); // 0=Sun, 1=Mon, ...
-		const padStart = jan1Dow === 0 ? 6 : jan1Dow - 1; // Mon-based offset
+		const jan1Dow = jan1.getDay();
+		const padStart = jan1Dow === 0 ? 6 : jan1Dow - 1;
 
-		// Leading empty cells
 		for (let i = 0; i < padStart; i++) {
-			const colDow = i % 7; // 0=Mon, 5=Sat, 6=Sun
+			const colDow = i % 7;
 			cells.push({ type: 'empty', isWeekend: colDow >= 5 });
 		}
 
-		// All days of the year
 		const start = new Date(year, 0, 1);
 		const end = new Date(year + 1, 0, 1);
 		for (let d = new Date(start); d < end; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
-			const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+			const dateStr = toDateStr(d.getFullYear(), d.getMonth(), d.getDate());
 			const dow = d.getDay();
 			cells.push({
 				type: 'day',
@@ -63,45 +62,30 @@
 			});
 		}
 
-		// Trailing empty cells to fill last row
 		const remainder = cells.length % COLS;
 		if (remainder > 0) {
 			const padEnd = COLS - remainder;
 			for (let i = 0; i < padEnd; i++) {
 				const totalIdx = cells.length;
-				const colDow = totalIdx % 7; // 0=Mon in our grid
+				const colDow = totalIdx % 7;
 				cells.push({ type: 'empty', isWeekend: colDow >= 5 });
 			}
 		}
 
 		return cells;
 	});
-
-	function eventsOnDate(dateStr: string) {
-		return events.filter((e) => e.date === dateStr);
-	}
-
-	function allocsForEvent(eventId: string) {
-		return allocations.filter((a) => a.eventId === eventId);
-	}
-
-	const today = new Date();
-	const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 </script>
 
 <div class="big-year-grid">
-	{#each grid() as cell, i (i)}
+	{#each grid as cell, i (i)}
 		{#if cell.type === 'empty'}
 			<div class="big-year-cell empty {cell.isWeekend ? 'weekend' : ''}"></div>
 		{:else}
-			{@const dayEvents = eventsOnDate(cell.dateStr)}
-			{@const hasGame = dayEvents.length > 0}
-			{@const isToday = cell.dateStr === todayStr}
-			{@const event = dayEvents[0]}
-			{@const allocs = event ? allocsForEvent(event.id) : []}
-			{@const confirmed = allocs.filter((a) => a.status === 'confirmed').length}
-			{@const pending = allocs.filter((a) => a.status === 'pending').length}
-			{@const restrictedCount = allocs.filter((a) => a.status === 'restricted').length}
+			{@const event = eventsByDate.get(cell.dateStr)}
+			{@const hasGame = !!event}
+			{@const isTodayCell = cell.dateStr === todayStr}
+			{@const allocs = event ? (allocsByEvent.get(event.id) ?? []) : []}
+			{@const counts = countStatuses(allocs)}
 			{@const past = !isUpcoming(cell.dateStr)}
 			{@const promos = promotions[cell.dateStr] ?? []}
 
@@ -111,8 +95,8 @@
 					class="big-year-cell group
 						{event.isMarquee ? 'game-marquee' : 'game-regular'}
 						{past ? 'opacity-40' : ''}
-						{isToday ? 'today-ring' : ''}"
-					title="vs {event.opponent} · {event.time}{confirmed > 0 ? ` · ${confirmed}/4 seats` : ''}{promos.length > 0 ? ` · ${promos.map(p => p.name).join(', ')}` : ''}"
+						{isTodayCell ? 'today-ring' : ''}"
+					title="vs {event.opponent} · {event.time}{counts.confirmed > 0 ? ` · ${counts.confirmed}/4 seats` : ''}{promos.length > 0 ? ` · ${promos.map(p => p.name).join(', ')}` : ''}"
 				>
 					{#if cell.isFirstOfMonth}
 						<span class="month-badge">{monthShort[cell.month]}</span>
@@ -124,9 +108,9 @@
 						{#if promos.length > 0}
 							<span class="indicator-dot bg-yellow"></span>
 						{/if}
-						{#if confirmed > 0 || pending > 0}
+						{#if counts.confirmed > 0 || counts.pending > 0}
 							{#each Array(event.totalSeats) as _, si}
-								<span class="indicator-dot {si < confirmed ? 'bg-confirmed' : si < confirmed + pending ? 'bg-pending' : si < confirmed + pending + restrictedCount ? 'bg-graphite/50' : 'bg-white/30'}"></span>
+								<span class="indicator-dot {seatDotColor(si, counts, 'bg-white/30')}"></span>
 							{/each}
 						{/if}
 					</span>
@@ -135,7 +119,7 @@
 				<div
 					class="big-year-cell
 						{cell.isWeekend ? 'weekend' : ''}
-						{isToday ? 'today-ring' : ''}
+						{isTodayCell ? 'today-ring' : ''}
 						{cell.isFirstOfMonth ? 'first-of-month' : ''}"
 				>
 					{#if cell.isFirstOfMonth}
@@ -176,7 +160,6 @@
 		min-height: 44px;
 	}
 
-	/* Weekend shading — consistent vertical bands */
 	.big-year-cell.weekend {
 		background: #f0eeeb;
 	}
@@ -252,7 +235,6 @@
 		flex-shrink: 0;
 	}
 
-	/* Game cells */
 	.game-regular {
 		background: var(--color-jays-light, #dbeafe);
 		border-left: 2px solid var(--color-jays-blue, #1d4ed8);
@@ -289,7 +271,6 @@
 		background: var(--color-jays-blue, #1d4ed8);
 	}
 
-	/* First of month on game cells */
 	.game-regular.first-of-month,
 	.game-marquee.first-of-month {
 		border-left: 2px solid var(--color-graphite);

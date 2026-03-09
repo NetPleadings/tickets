@@ -2,18 +2,20 @@
 	import { events } from '$lib/data/schedule';
 	import { allocations } from '$lib/stores/allocations';
 	import { team, teamLoading, teamError, teamIsLive, loadTeam, ensureTeamLoaded } from '$lib/stores/team';
-	import { isUpcoming } from '$lib/utils';
+	import { isUpcoming, buildEventsById } from '$lib/utils';
 	import { onMount } from 'svelte';
 
 	onMount(() => ensureTeamLoaded());
 
 	// All unique attendees from allocations (team + guests)
-	const attendeeStats = $derived(() => {
+	const eventsById = $derived(buildEventsById(events));
+
+	const attendeeStats = $derived.by(() => {
 		const counts = new Map<string, { name: string; email: string; isGuest: boolean; company: string; games: number; upcoming: number }>();
 
 		for (const a of $allocations) {
 			const key = a.assignee;
-			const ev = events.find((e) => e.id === a.eventId);
+			const ev = eventsById.get(a.eventId);
 			const isGuestAlloc = a.isGuest ?? false;
 			const company = isGuestAlloc ? (a.guestCompany ?? '') : '';
 
@@ -33,13 +35,13 @@
 	const guestAllocations = $derived($allocations.filter((a) => a.isGuest).length);
 	const teamAllocations = $derived(totalAllocations - guestAllocations);
 	const teamPct = $derived(totalAllocations > 0 ? (teamAllocations / totalAllocations) * 100 : 0);
-	const maxMonthCount = $derived(Math.max(...monthlyDist().map((m) => m.count), 1));
+	const maxMonthCount = $derived(Math.max(...monthlyDist.map((m) => m.count), 1));
 
 	// Monthly distribution
-	const monthlyDist = $derived(() => {
+	const monthlyDist = $derived.by(() => {
 		const months = new Map<string, number>();
 		for (const a of $allocations) {
-			const ev = events.find((e) => e.id === a.eventId);
+			const ev = eventsById.get(a.eventId);
 			if (!ev) continue;
 			const key = ev.date.substring(0, 7);
 			months.set(key, (months.get(key) ?? 0) + 1);
@@ -136,7 +138,7 @@
 			<div class="bg-white rounded-xl border border-crystal-pale shadow-sm p-5">
 				<h3 class="font-display font-semibold text-graphite text-sm mb-3">Monthly Distribution</h3>
 				<div class="flex items-end gap-2 h-24">
-					{#each monthlyDist() as month}
+					{#each monthlyDist as month}
 						<div class="flex-1 flex flex-col items-center gap-1">
 							<span class="text-[10px] font-body font-semibold text-graphite">{month.count || ''}</span>
 							<div
@@ -156,14 +158,14 @@
 	{/if}
 
 	<!-- Attendee table -->
-	{#if attendeeStats().length > 0}
+	{#if attendeeStats.length > 0}
 		<div class="bg-white rounded-xl border border-crystal-pale shadow-sm overflow-hidden">
 			<div class="px-5 py-2.5 border-b border-crystal-pale bg-crystal/30 flex items-center justify-between">
 				<span class="text-[10px] uppercase tracking-wider font-semibold text-slate font-body">Attendees</span>
-				<span class="text-[10px] text-slate font-body">{attendeeStats().length} people</span>
+				<span class="text-[10px] text-slate font-body">{attendeeStats.length} people</span>
 			</div>
 			<div class="divide-y divide-crystal-pale/60">
-				{#each attendeeStats() as person, i (person.name)}
+				{#each attendeeStats as person, i (person.name)}
 					<div class="grid grid-cols-[1fr_80px_80px] gap-4 px-5 py-3.5 items-center hover:bg-crystal/30 transition-colors">
 						<div class="flex items-center gap-3">
 							<div class="w-9 h-9 rounded-lg {person.isGuest ? 'bg-yellow/20 text-gold' : avatarColors[i % avatarColors.length] + ' text-white'} flex items-center justify-center font-display font-semibold text-sm">
