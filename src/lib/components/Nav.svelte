@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { accountManager } from '$lib/data/terrace-club';
-	import { currentUser, userLoaded } from '$lib/stores/user';
+	import { currentUser, userLoaded, previewAsManager } from '$lib/stores/user';
 
 	const navItems = $derived.by(() => {
 		const items = [
@@ -68,6 +68,17 @@
 							}">{roleBadge}</span>
 						{/if}
 						<span class="text-[12px] text-silver font-body hidden sm:inline">{displayName}</span>
+						{#if $currentUser.role === 'admin'}
+							<button
+								onclick={() => previewAsManager.update((v) => !v)}
+								class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded transition-all cursor-pointer {
+									$previewAsManager ? 'bg-pending/30 text-pending' : 'bg-white/5 text-silver hover:bg-white/10'
+								}"
+								title="Preview app as a Manager"
+							>
+								{$previewAsManager ? 'Previewing Manager' : 'Preview'}
+							</button>
+						{/if}
 					</div>
 				{/if}
 			</div>

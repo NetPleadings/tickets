@@ -8,9 +8,15 @@
 	import { promotions, promoColor, promoIcon } from '$lib/data/promotions';
 	import { formatDateFull } from '$lib/utils';
 	import { teamAbbrevs } from '$lib/data/schedule';
+	import { currentUser, previewAsManager, getEffectiveRole } from '$lib/stores/user';
 	import { onMount } from 'svelte';
 
 	onMount(() => ensureTeamLoaded());
+
+	const effectiveRole = $derived(
+		$currentUser ? getEffectiveRole($currentUser.role, $previewAsManager) : 'viewer'
+	);
+	const canManage = $derived(effectiveRole === 'admin');
 
 	const eventId = $derived(page.params.id);
 	const event = $derived(events.find((e) => e.id === eventId));
@@ -213,15 +219,17 @@
 										<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-graphite/10 text-graphite/50">
 											restricted
 										</span>
-										<button
-											onclick={() => doUnassign(alloc.id)}
-											class="text-[11px] font-body text-silver hover:text-declined transition-colors"
-											title="Remove restriction"
-										>
-											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-												<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-											</svg>
-										</button>
+										{#if canManage}
+											<button
+												onclick={() => doUnassign(alloc.id)}
+												class="text-[11px] font-body text-silver hover:text-declined transition-colors"
+												title="Remove restriction"
+											>
+												<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+												</svg>
+											</button>
+										{/if}
 									{:else if alloc}
 										<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full
 											{alloc.status === 'confirmed' ? 'bg-confirmed/10 text-confirmed' :
@@ -230,49 +238,57 @@
 											{alloc.status === 'pending' ? 'invited' : alloc.status}
 										</span>
 
-										{#if alloc.status === 'pending'}
+										{#if canManage}
+											{#if alloc.status === 'pending'}
+												<button
+													onclick={() => confirmSeat(alloc.id)}
+													class="text-[11px] font-semibold font-body px-2.5 py-1 rounded-md bg-confirmed/10 text-confirmed hover:bg-confirmed/20 transition-colors"
+													title="Mark as confirmed"
+												>
+													Confirm
+												</button>
+												<button
+													onclick={() => declineSeat(alloc.id)}
+													class="text-[11px] font-semibold font-body px-2.5 py-1 rounded-md bg-declined/10 text-declined hover:bg-declined/20 transition-colors"
+													title="Mark as declined"
+												>
+													Decline
+												</button>
+											{/if}
+
+											{#if alloc.status === 'declined'}
+												<button
+													onclick={() => confirmSeat(alloc.id)}
+													class="text-[11px] font-semibold font-body px-2.5 py-1 rounded-md bg-confirmed/10 text-confirmed hover:bg-confirmed/20 transition-colors"
+													title="Re-confirm"
+												>
+													Confirm
+												</button>
+											{/if}
+
 											<button
-												onclick={() => confirmSeat(alloc.id)}
-												class="text-[11px] font-semibold font-body px-2.5 py-1 rounded-md bg-confirmed/10 text-confirmed hover:bg-confirmed/20 transition-colors"
-												title="Mark as confirmed"
+												onclick={() => doUnassign(alloc.id)}
+												class="text-[11px] font-body text-silver hover:text-declined transition-colors"
+												title="Remove"
 											>
-												Confirm
-											</button>
-											<button
-												onclick={() => declineSeat(alloc.id)}
-												class="text-[11px] font-semibold font-body px-2.5 py-1 rounded-md bg-declined/10 text-declined hover:bg-declined/20 transition-colors"
-												title="Mark as declined"
-											>
-												Decline
+												<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+												</svg>
 											</button>
 										{/if}
-
-										{#if alloc.status === 'declined'}
-											<button
-												onclick={() => confirmSeat(alloc.id)}
-												class="text-[11px] font-semibold font-body px-2.5 py-1 rounded-md bg-confirmed/10 text-confirmed hover:bg-confirmed/20 transition-colors"
-												title="Re-confirm"
-											>
-												Confirm
-											</button>
-										{/if}
-
-										<button
-											onclick={() => doUnassign(alloc.id)}
-											class="text-[11px] font-body text-silver hover:text-declined transition-colors"
-											title="Remove"
-										>
-											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-												<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-											</svg>
-										</button>
 									{:else}
-										<button
-											onclick={() => openAssign(seat.id)}
-											class="text-[11px] font-semibold font-body px-3 py-1.5 rounded-lg bg-graphite text-white hover:bg-graphite-deep transition-colors"
-										>
-											Assign
-										</button>
+										{#if canManage}
+											<button
+												onclick={() => openAssign(seat.id)}
+												class="text-[11px] font-semibold font-body px-3 py-1.5 rounded-lg bg-graphite text-white hover:bg-graphite-deep transition-colors"
+											>
+												Assign
+											</button>
+										{:else}
+											<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-crystal text-silver">
+												available
+											</span>
+										{/if}
 									{/if}
 								</div>
 							</div>

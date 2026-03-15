@@ -12,6 +12,8 @@ const isBrowser = typeof window !== 'undefined';
 export const currentUser = writable<CurrentUser | null>(null);
 export const bookingWindowDays = writable<number>(60);
 export const userLoaded = writable(false);
+// Admin preview mode — when true, admins see the app as a manager would
+export const previewAsManager = writable(false);
 
 export async function loadCurrentUser() {
 	if (!isBrowser) return;
@@ -32,4 +34,13 @@ export function isAdmin(role: Role): boolean {
 
 export function isManagerOrAbove(role: Role): boolean {
 	return role === 'admin' || role === 'manager';
+}
+
+/**
+ * Returns the effective role, accounting for admin preview mode.
+ * Use this for UI visibility decisions (not server-side enforcement).
+ */
+export function getEffectiveRole(role: Role, previewing: boolean): Role {
+	if (role === 'admin' && previewing) return 'manager';
+	return role;
 }

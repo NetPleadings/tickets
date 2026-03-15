@@ -12,7 +12,12 @@ export const GET: RequestHandler = async () => {
 	return json({ ok: true, allocations });
 };
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
+	// Only admins can directly assign/unassign/update allocations
+	if (locals.user.role !== 'admin') {
+		return json({ ok: false, error: 'Forbidden' }, { status: 403 });
+	}
+
 	const body = await request.json();
 
 	switch (body.action) {
