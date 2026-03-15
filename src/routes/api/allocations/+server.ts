@@ -1,16 +1,34 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
-import { loadAllocations, saveAllocations } from '$lib/server/storage.js';
+import {
+	loadAllocations,
+	insertAllocation,
+	updateAllocationStatus,
+	deleteAllocation,
+} from '$lib/server/bigquery.js';
 
-// GET — load all allocations
 export const GET: RequestHandler = async () => {
-	const allocations = loadAllocations();
+	const allocations = await loadAllocations();
 	return json({ ok: true, allocations });
 };
 
-// POST — save all allocations (full replace)
 export const POST: RequestHandler = async ({ request }) => {
-	const { allocations } = await request.json();
-	saveAllocations(allocations);
-	return json({ ok: true });
+	const body = await request.json();
+
+	switch (body.action) {
+		case 'assign':
+			await insertAllocation(body.allocation);
+			return json({ ok: true });
+
+		case 'updateStatus':
+			await updateAllocationStatus(body.id, body.status);
+			return json({ ok: true });
+
+		case 'unassign':
+			await deleteAllocation(body.id);
+			return json({ ok: true });
+
+		default:
+			return json({ ok: false, error: 'Unknown action' }, { status: 400 });
+	}
 };
