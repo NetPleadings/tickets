@@ -7,9 +7,10 @@
 	interface Props {
 		events: Event[];
 		allocations: Allocation[];
+		pendingSeatsMap?: Map<string, number>;
 	}
 
-	let { events, allocations }: Props = $props();
+	let { events, allocations, pendingSeatsMap = new Map() }: Props = $props();
 
 	const allocsByEvent = $derived(buildAllocsByEvent(allocations));
 
@@ -38,7 +39,8 @@
 				{#each monthEvents as event (event.id)}
 					{@const allocs = allocsByEvent.get(event.id) ?? []}
 					{@const counts = countStatuses(allocs)}
-					{@const available = event.totalSeats - counts.confirmed - counts.pending - counts.restricted}
+					{@const rawAvailable = event.totalSeats - counts.confirmed - counts.pending - counts.restricted}
+					{@const available = Math.max(0, rawAvailable - (pendingSeatsMap.get(event.id) ?? 0))}
 					{@const soldOut = isSoldOut(counts, event.totalSeats)}
 					{@const past = !isUpcoming(event.date)}
 					{@const promos = promotions[event.date] ?? []}

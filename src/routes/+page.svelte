@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { events, seats } from '$lib/data/schedule';
 	import { allocations, allocationsLoaded } from '$lib/stores/allocations';
+	import { requests } from '$lib/stores/requests';
 	import { promotions } from '$lib/data/promotions';
 	import { isUpcoming, buildAllocsByEvent, countStatuses, isSoldOut } from '$lib/utils';
 	import CalendarView from '$lib/components/CalendarView.svelte';
@@ -70,6 +71,16 @@
 	}
 
 	const allocsByEvent = $derived(buildAllocsByEvent($allocations));
+
+	// Map of eventId → total seats in pending requests (soft-holds)
+	const pendingSeatsMap = $derived.by(() => {
+		const map = new Map<string, number>();
+		for (const r of $requests) {
+			if (r.status !== 'pending') continue;
+			map.set(r.eventId, (map.get(r.eventId) ?? 0) + r.seatCount);
+		}
+		return map;
+	});
 
 	const filteredEvents = $derived(
 		events.filter((e) => {
@@ -292,11 +303,11 @@
 			</div>
 		</div>
 		{#if listMode === 'cards'}
-			<ListView events={filteredEvents} allocations={$allocations} />
+			<ListView events={filteredEvents} allocations={$allocations} {pendingSeatsMap} />
 		{:else if listMode === 'table'}
-			<CompactListView events={filteredEvents} allocations={$allocations} />
+			<CompactListView events={filteredEvents} allocations={$allocations} {pendingSeatsMap} />
 		{:else}
-			<TextListView events={filteredEvents} allocations={$allocations} />
+			<TextListView events={filteredEvents} allocations={$allocations} {pendingSeatsMap} />
 		{/if}
 	{/if}
 </div>

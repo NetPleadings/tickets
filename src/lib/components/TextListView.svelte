@@ -3,7 +3,7 @@
 	import { buildAllocsByEvent, countStatuses } from '$lib/utils';
 	import { promotions } from '$lib/data/promotions';
 
-	let { events, allocations }: { events: Event[]; allocations: Allocation[] } = $props();
+	let { events, allocations, pendingSeatsMap = new Map() }: { events: Event[]; allocations: Allocation[]; pendingSeatsMap?: Map<string, number> } = $props();
 
 	let copied = $state(false);
 	let textEl: HTMLPreElement;
@@ -34,7 +34,7 @@
 	function statusLabel(event: Event): string {
 		const allocs = allocsByEvent.get(event.id) ?? [];
 		const counts = countStatuses(allocs);
-		const avail = event.totalSeats - counts.confirmed - counts.pending - counts.restricted;
+		const avail = Math.max(0, event.totalSeats - counts.confirmed - counts.pending - counts.restricted - (pendingSeatsMap.get(event.id) ?? 0));
 
 		const parts: string[] = [];
 		if (avail > 0) parts.push(`${avail} avail`);

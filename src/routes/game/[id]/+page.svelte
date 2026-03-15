@@ -30,7 +30,13 @@
 
 	const confirmed = $derived(eventAllocs.filter((a) => a.status === 'confirmed').length);
 	const restricted = $derived(eventAllocs.filter((a) => a.status === 'restricted').length);
-	const available = $derived(event ? event.totalSeats - eventAllocs.length : 0);
+	const totalAvailable = $derived(event ? event.totalSeats - eventAllocs.length : 0);
+	// Pending requested seats reduce what others see as available
+	const pendingRequestedSeats = $derived(
+		$requests.filter((r) => r.eventId === eventId && r.status === 'pending')
+			.reduce((sum, r) => sum + r.seatCount, 0)
+	);
+	const available = $derived(canManage ? totalAvailable : Math.max(0, totalAvailable - pendingRequestedSeats));
 	const gamePromos = $derived(event ? (promotions[event.date] ?? []) : []);
 
 	// Booking window check

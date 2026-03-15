@@ -6,9 +6,10 @@
 	interface Props {
 		events: Event[];
 		allocations: Allocation[];
+		pendingSeatsMap?: Map<string, number>;
 	}
 
-	let { events, allocations }: Props = $props();
+	let { events, allocations, pendingSeatsMap = new Map() }: Props = $props();
 
 	const allocsByEvent = $derived(buildAllocsByEvent(allocations));
 
