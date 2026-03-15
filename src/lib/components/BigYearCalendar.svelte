@@ -237,8 +237,8 @@
 	}
 
 	.game-soldout {
-		background: var(--color-confirmed);
-		border-left: 2px solid color-mix(in srgb, var(--color-confirmed) 70%, black);
+		background: var(--color-declined);
+		border-left: 2px solid color-mix(in srgb, var(--color-declined) 70%, black);
 	}
 
 	.game-soldout .day-weekday {
@@ -255,7 +255,7 @@
 	}
 
 	.game-soldout:hover {
-		background: color-mix(in srgb, var(--color-confirmed) 80%, black);
+		background: color-mix(in srgb, var(--color-declined) 80%, black);
 	}
 
 	.game-soldout .month-badge {
