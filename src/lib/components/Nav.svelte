@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { accountManager } from '$lib/data/terrace-club';
-	import { currentUser, userLoaded, previewMode } from '$lib/stores/user';
+	import { currentUser, userLoaded, previewMode, getEffectiveRole } from '$lib/stores/user';
+
+	const effectiveRole = $derived(
+		$currentUser ? getEffectiveRole($currentUser.role, $previewMode) : 'viewer'
+	);
 
 	const navItems = $derived.by(() => {
 		const items = [
@@ -9,11 +13,11 @@
 			{ href: '/my-schedule', label: 'My Games', match: (p: string) => p.startsWith('/my-schedule') },
 			{ href: '/requests', label: 'Requests', match: (p: string) => p.startsWith('/requests') },
 		];
-		if ($currentUser && ($currentUser.role === 'admin' || $currentUser.role === 'manager')) {
+		if (effectiveRole === 'admin' || effectiveRole === 'manager') {
 			items.push({ href: '/team', label: 'Team', match: (p: string) => p.startsWith('/team') });
 		}
 		items.push({ href: '/seats', label: 'Our Seats', match: (p: string) => p.startsWith('/seats') });
-		if ($currentUser?.role === 'admin') {
+		if (effectiveRole === 'admin') {
 			items.push({ href: '/admin', label: 'Admin', match: (p: string) => p.startsWith('/admin') });
 		}
 		return items;
