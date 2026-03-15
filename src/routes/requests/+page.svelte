@@ -2,7 +2,7 @@
 	import { events } from '$lib/data/schedule';
 	import { allocations } from '$lib/stores/allocations';
 	import { currentUser, previewMode, getEffectiveRole, bookingWindowDays } from '$lib/stores/user';
-	import { requests, requestsLoaded, loadRequests, approveRequest, rejectRequest } from '$lib/stores/requests';
+	import { requests, requestsLoaded, loadRequests, approveRequest, rejectRequest, cancelRequest } from '$lib/stores/requests';
 	import { buildAllocsByEvent, countStatuses, isUpcoming } from '$lib/utils';
 	import { onMount } from 'svelte';
 
@@ -16,7 +16,7 @@
 	const allocsByEvent = $derived(buildAllocsByEvent($allocations));
 
 	// Filter tabs
-	let statusFilter = $state<'pending' | 'approved' | 'rejected' | 'all'>('pending');
+	let statusFilter = $state<'pending' | 'approved' | 'rejected' | 'cancelled' | 'all'>('pending');
 
 	const filteredRequests = $derived(
 		$requests.filter((r) => statusFilter === 'all' || r.status === statusFilter)
@@ -74,6 +74,7 @@
 				{ key: 'pending', label: 'Pending', color: 'bg-pending/15 text-pending' },
 				{ key: 'approved', label: 'Approved', color: 'bg-confirmed/15 text-confirmed' },
 				{ key: 'rejected', label: 'Rejected', color: 'bg-declined/15 text-declined' },
+			{ key: 'cancelled', label: 'Cancelled', color: 'bg-graphite/10 text-silver' },
 				{ key: 'all', label: 'All', color: 'bg-graphite/10 text-graphite' },
 			] as tab}
 				<button
@@ -124,6 +125,7 @@
 									<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full {
 										req.status === 'pending' ? 'bg-pending/10 text-pending' :
 										req.status === 'approved' ? 'bg-confirmed/10 text-confirmed' :
+										req.status === 'cancelled' ? 'bg-graphite/10 text-silver' :
 										'bg-declined/10 text-declined'
 									}">
 										{req.status}
@@ -186,7 +188,17 @@
 								{/if}
 							</div>
 
-							<!-- Actions (admin only) -->
+							<!-- Actions -->
+							{#if req.status === 'pending' && !isAdminView && req.requesterEmail === $currentUser?.email}
+								<div class="shrink-0">
+									<button
+										onclick={async () => { await cancelRequest(req.id); }}
+										class="px-3 py-1.5 rounded-lg text-[12px] font-semibold font-body bg-graphite/10 text-slate hover:bg-declined/10 hover:text-declined transition-colors"
+									>
+										Cancel
+									</button>
+								</div>
+							{/if}
 							{#if req.status === 'pending' && isAdminView}
 								<div class="flex items-center gap-2 shrink-0">
 									<button

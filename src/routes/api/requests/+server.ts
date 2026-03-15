@@ -113,6 +113,23 @@ export async function POST({ request, locals }) {
 			return json({ ok: true });
 		}
 
+		case 'cancel': {
+			// Users can cancel their own pending requests
+			const allRequests = await loadRequests();
+			const req = allRequests.find((r) => r.id === body.id);
+			if (!req) {
+				return json({ ok: false, error: 'Request not found' }, { status: 404 });
+			}
+			if (req.requesterEmail !== locals.user.email && locals.user.role !== 'admin') {
+				return json({ ok: false, error: 'Forbidden' }, { status: 403 });
+			}
+			if (req.status !== 'pending') {
+				return json({ ok: false, error: 'Only pending requests can be cancelled' }, { status: 400 });
+			}
+			await updateRequestStatus(body.id, 'cancelled', locals.user.email);
+			return json({ ok: true });
+		}
+
 		default:
 			return json({ ok: false, error: 'Unknown action' }, { status: 400 });
 	}
