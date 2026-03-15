@@ -105,7 +105,12 @@
 	const totalSeats = $derived(upcoming.length * 4);
 	const upcomingAllocs = $derived($allocations.filter((a) => upcomingIds.has(a.eventId)));
 	const confirmedCount = $derived(upcomingAllocs.filter((a) => a.status === 'confirmed').length);
-	const pendingCount = $derived(upcomingAllocs.filter((a) => a.status === 'pending').length);
+	const allocPendingCount = $derived(upcomingAllocs.filter((a) => a.status === 'pending').length);
+	const requestPendingSeats = $derived(
+		$requests.filter((r) => r.status === 'pending' && upcomingIds.has(r.eventId))
+			.reduce((sum, r) => sum + r.seatCount, 0)
+	);
+	const pendingCount = $derived(allocPendingCount + requestPendingSeats);
 	const restrictedCount = $derived(upcomingAllocs.filter((a) => a.status === 'restricted').length);
 	const restrictedGames = $derived(new Set(upcomingAllocs.filter((a) => a.status === 'restricted').map((a) => a.eventId)).size);
 	const availableCount = $derived(totalSeats - confirmedCount - pendingCount - restrictedCount);
