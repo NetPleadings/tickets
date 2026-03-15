@@ -14,6 +14,7 @@
 		const counts = new Map<string, { name: string; email: string; isGuest: boolean; company: string; games: number; upcoming: number }>();
 
 		for (const a of $allocations) {
+			if (a.status === 'restricted') continue;
 			const key = a.assignee;
 			const ev = eventsById.get(a.eventId);
 			const isGuestAlloc = a.isGuest ?? false;
@@ -31,8 +32,10 @@
 	});
 
 	// Stats for charts
-	const totalAllocations = $derived($allocations.length);
-	const guestAllocations = $derived($allocations.filter((a) => a.isGuest).length);
+	const restrictedAllocations = $derived($allocations.filter((a) => a.status === 'restricted').length);
+	const activeAllocations = $derived($allocations.filter((a) => a.status !== 'restricted'));
+	const totalAllocations = $derived(activeAllocations.length);
+	const guestAllocations = $derived(activeAllocations.filter((a) => a.isGuest).length);
 	const teamAllocations = $derived(totalAllocations - guestAllocations);
 	const teamPct = $derived(totalAllocations > 0 ? (teamAllocations / totalAllocations) * 100 : 0);
 	const maxMonthCount = $derived(Math.max(...monthlyDist.map((m) => m.count), 1));
@@ -41,6 +44,7 @@
 	const monthlyDist = $derived.by(() => {
 		const months = new Map<string, number>();
 		for (const a of $allocations) {
+			if (a.status === 'restricted') continue;
 			const ev = eventsById.get(a.eventId);
 			if (!ev) continue;
 			const key = ev.date.substring(0, 7);

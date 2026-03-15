@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Event, Allocation } from '$lib/types';
-	import { isUpcoming, buildAllocsByEvent, countStatuses, seatDotColor } from '$lib/utils';
+	import { isUpcoming, buildAllocsByEvent, countStatuses, seatDotColor, isSoldOut } from '$lib/utils';
 	import { promotions } from '$lib/data/promotions';
 
 	interface Props {
@@ -30,6 +30,7 @@
 			{@const pending = allocs.filter((a) => a.status === 'pending')}
 			{@const restrictedAllocs = allocs.filter((a) => a.status === 'restricted')}
 			{@const counts = countStatuses(allocs)}
+			{@const soldOut = isSoldOut(counts, event.totalSeats)}
 			{@const past = !isUpcoming(event.date)}
 			{@const d = new Date(event.date + 'T12:00:00')}
 			{@const promos = promotions[event.date] ?? []}
@@ -64,10 +65,15 @@
 									>{alloc.status === 'restricted' ? 'Restricted' : alloc.assignee.split(' ')[0]}{#if alloc.isGuest}<span class="text-[9px] text-pending ml-0.5">G</span>{/if}{#if alloc.status === 'restricted'}<span class="text-[9px] text-graphite/40 ml-0.5">R</span>{/if}</span>
 							{/each}
 						</span>
-						<span class="flex gap-0.5 ml-auto shrink-0">
-							{#each Array(event.totalSeats) as _, si}
-								<span class="w-2 h-2 rounded-full {seatDotColor(si, counts)}"></span>
-							{/each}
+						<span class="flex items-center gap-1 ml-auto shrink-0">
+							{#if soldOut}
+								<span class="text-[8px] font-bold uppercase text-confirmed">Full</span>
+							{/if}
+							<span class="flex gap-0.5">
+								{#each Array(event.totalSeats) as _, si}
+									<span class="w-2 h-2 rounded-full {seatDotColor(si, counts)}"></span>
+								{/each}
+							</span>
 						</span>
 					{/if}
 				</div>

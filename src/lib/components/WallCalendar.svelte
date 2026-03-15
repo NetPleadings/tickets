@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Event, Allocation } from '$lib/types';
 	import { promotions } from '$lib/data/promotions';
-	import { toDateStr, todayDateStr, isUpcoming, buildEventsByDate, buildAllocsByEvent, countStatuses, seatDotColor } from '$lib/utils';
+	import { toDateStr, todayDateStr, isUpcoming, buildEventsByDate, buildAllocsByEvent, countStatuses, seatDotColor, isSoldOut } from '$lib/utils';
 
 	interface Props {
 		events: Event[];
@@ -67,6 +67,7 @@
 					{@const isTodayCell = cell.dateStr === todayStr}
 					{@const allocs = event ? (allocsByEvent.get(event.id) ?? []) : []}
 					{@const counts = countStatuses(allocs)}
+					{@const soldOut = event ? isSoldOut(counts, event.totalSeats) : false}
 					{@const past = !isUpcoming(cell.dateStr)}
 					{@const promos = promotions[cell.dateStr] ?? []}
 
@@ -74,7 +75,7 @@
 						<a
 							href="/game/{event.id}"
 							class="wall-cell wall-game
-								{event.isMarquee ? 'wall-marquee' : 'wall-regular'}
+								{event.isMarquee ? 'wall-marquee' : soldOut ? 'wall-soldout' : 'wall-regular'}
 								{past ? 'opacity-40' : ''}
 								{isTodayCell ? 'wall-today' : ''}"
 							title="{weekdayShort[cell.weekday]} · vs {event.opponent} · {event.time}{promos.length > 0 ? ` · ${promos.map(p => p.name).join(', ')}` : ''}"
@@ -212,6 +213,19 @@
 
 	.wall-game {
 		text-decoration: none;
+	}
+
+	.wall-soldout {
+		background: var(--color-confirmed);
+		border-left: 2px solid color-mix(in srgb, var(--color-confirmed) 70%, black);
+	}
+
+	.wall-soldout .wall-dow {
+		color: white;
+	}
+
+	.wall-soldout:hover {
+		background: color-mix(in srgb, var(--color-confirmed) 80%, black);
 	}
 
 	.wall-regular {

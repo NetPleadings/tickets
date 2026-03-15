@@ -108,6 +108,10 @@ export function countStatuses(allocs: Allocation[]): StatusCounts {
 	return { confirmed, pending, restricted, declined };
 }
 
+export function isSoldOut(counts: StatusCounts, totalSeats: number): boolean {
+	return counts.confirmed + counts.pending + counts.restricted >= totalSeats;
+}
+
 export function seatDotColor(index: number, counts: StatusCounts, emptyClass = 'bg-crystal-pale'): string {
 	const { confirmed, pending, restricted } = counts;
 	if (index < confirmed) return 'bg-confirmed';
