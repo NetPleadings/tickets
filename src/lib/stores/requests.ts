@@ -14,7 +14,7 @@ export interface TicketRequest {
 	requesterName: string;
 	seatCount: number;
 	companions?: RequestCompanion[];
-	status: 'pending' | 'approved' | 'rejected';
+	status: 'pending' | 'approved' | 'rejected' | 'cancelled';
 	reviewedBy?: string;
 	reviewedAt?: string;
 	notes?: string;
@@ -94,6 +94,25 @@ export async function rejectRequest(id: string) {
 		return data;
 	} catch {
 		return { ok: false };
+	}
+}
+
+export async function cancelRequest(id: string): Promise<{ ok: boolean; error?: string }> {
+	try {
+		const res = await fetch('/api/requests', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ action: 'cancel', id }),
+		});
+		const data = await res.json();
+		if (data.ok) {
+			requests.update((current) =>
+				current.map((r) => r.id === id ? { ...r, status: 'cancelled' as const } : r)
+			);
+		}
+		return data;
+	} catch {
+		return { ok: false, error: 'Network error' };
 	}
 }
 

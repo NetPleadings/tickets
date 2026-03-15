@@ -9,7 +9,7 @@
 	import { formatDateFull } from '$lib/utils';
 	import { teamAbbrevs } from '$lib/data/schedule';
 	import { currentUser, previewMode, getEffectiveRole, bookingWindowDays } from '$lib/stores/user';
-	import { createRequest, requests } from '$lib/stores/requests';
+	import { createRequest, cancelRequest, requests } from '$lib/stores/requests';
 	import { onMount } from 'svelte';
 
 	onMount(() => ensureTeamLoaded());
@@ -471,6 +471,12 @@
 							<div class="text-center py-4">
 								<div class="text-pending font-display font-semibold mb-1">Request Pending</div>
 								<p class="text-sm text-slate font-body">You already have a pending request for {myPendingRequest.seatCount} seat{myPendingRequest.seatCount > 1 ? 's' : ''} at this game.</p>
+								<button
+									onclick={async () => { await cancelRequest(myPendingRequest!.id); }}
+									class="mt-3 px-4 py-1.5 rounded-lg text-[12px] font-semibold font-body bg-graphite/10 text-slate hover:bg-declined/10 hover:text-declined transition-colors"
+								>
+									Cancel Request
+								</button>
 							</div>
 						{:else if !withinBookingWindow}
 							<div class="text-center py-4">
