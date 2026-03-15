@@ -8,7 +8,8 @@
 	import { promotions, promoColor, promoIcon } from '$lib/data/promotions';
 	import { formatDateFull } from '$lib/utils';
 	import { teamAbbrevs } from '$lib/data/schedule';
-	import { currentUser, previewAsManager, getEffectiveRole } from '$lib/stores/user';
+	import { currentUser, previewAsManager, getEffectiveRole, bookingWindowDays } from '$lib/stores/user';
+	import { createRequest, requests } from '$lib/stores/requests';
 	import { onMount } from 'svelte';
 
 	onMount(() => ensureTeamLoaded());
@@ -31,6 +32,49 @@
 	const restricted = $derived(eventAllocs.filter((a) => a.status === 'restricted').length);
 	const available = $derived(event ? event.totalSeats - eventAllocs.length : 0);
 	const gamePromos = $derived(event ? (promotions[event.date] ?? []) : []);
+
+	// Booking window check
+	const withinBookingWindow = $derived.by(() => {
+		if (!event) return false;
+		const eventDate = new Date(event.date + 'T00:00:00');
+		const cutoff = new Date();
+		cutoff.setDate(cutoff.getDate() + $bookingWindowDays);
+		return eventDate <= cutoff;
+	});
+
+	// Pending requests for this event
+	const eventPendingRequests = $derived(
+		$requests.filter((r) => r.eventId === eventId && r.status === 'pending')
+	);
+	const myPendingRequest = $derived(
+		$currentUser ? eventPendingRequests.find((r) => r.requesterEmail === $currentUser!.email) : null
+	);
+
+	// Request state
+	let requestSeatCount = $state(1);
+	let requestNotes = $state('');
+	let requestSubmitting = $state(false);
+	let requestError = $state('');
+	let requestSuccess = $state(false);
+
+	async function submitRequest() {
+		if (!event || !$currentUser) return;
+		requestSubmitting = true;
+		requestError = '';
+		const result = await createRequest({
+			eventId: event.id,
+			requesterName: $currentUser.email.split('@')[0],
+			seatCount: requestSeatCount,
+			notes: requestNotes,
+		});
+		requestSubmitting = false;
+		if (result.ok) {
+			requestSuccess = true;
+			requestNotes = '';
+		} else {
+			requestError = result.error || 'Failed to submit request';
+		}
+	}
 
 	// Assign modal state
 	let assigningSeatId = $state<string | null>(null);
@@ -356,6 +400,69 @@
 					</div>
 				</div>
 			</div>
+
+			<!-- Request Tickets (non-admin users) -->
+			{#if !canManage && available > 0}
+				<div class="lg:col-span-2">
+					<div class="bg-white rounded-xl border border-crystal-pale shadow-sm p-5">
+						{#if requestSuccess}
+							<div class="text-center py-4">
+								<div class="text-confirmed font-display font-semibold text-lg mb-1">Request Submitted!</div>
+								<p class="text-sm text-slate font-body">An admin will review your request.</p>
+							</div>
+						{:else if myPendingRequest}
+							<div class="text-center py-4">
+								<div class="text-pending font-display font-semibold mb-1">Request Pending</div>
+								<p class="text-sm text-slate font-body">You already have a pending request for {myPendingRequest.seatCount} seat{myPendingRequest.seatCount > 1 ? 's' : ''} at this game.</p>
+							</div>
+						{:else if !withinBookingWindow}
+							<div class="text-center py-4">
+								<div class="text-silver font-display font-semibold mb-1">Not Yet Available</div>
+								<p class="text-sm text-slate font-body">Requests open within {$bookingWindowDays} days of the game date.</p>
+							</div>
+						{:else}
+							<h3 class="font-display font-semibold text-graphite mb-3">Request Tickets</h3>
+							<div class="flex items-end gap-3">
+								<div>
+									<label class="text-[11px] font-body text-slate block mb-1">Seats</label>
+									<select
+										bind:value={requestSeatCount}
+										class="px-3 py-2 rounded-lg border border-crystal-pale text-[13px] font-body text-graphite focus:outline-none focus:ring-2 focus:ring-yellow/50"
+									>
+										{#each Array(Math.min(available, 4)) as _, i}
+											<option value={i + 1}>{i + 1}</option>
+										{/each}
+									</select>
+								</div>
+								<div class="flex-1">
+									<label class="text-[11px] font-body text-slate block mb-1">Notes (optional)</label>
+									<input
+										type="text"
+										bind:value={requestNotes}
+										placeholder="e.g., client meeting"
+										class="w-full px-3 py-2 rounded-lg border border-crystal-pale text-[13px] font-body text-graphite placeholder:text-silver focus:outline-none focus:ring-2 focus:ring-yellow/50"
+									/>
+								</div>
+								<button
+									onclick={submitRequest}
+									disabled={requestSubmitting}
+									class="px-4 py-2 rounded-lg text-[13px] font-semibold font-body bg-graphite text-white hover:bg-graphite-deep transition-colors disabled:opacity-50 shrink-0"
+								>
+									{requestSubmitting ? 'Submitting...' : 'Request'}
+								</button>
+							</div>
+							{#if requestError}
+								<p class="text-sm text-declined font-body mt-2">{requestError}</p>
+							{/if}
+							{#if eventPendingRequests.length > 0}
+								<div class="mt-3 text-[11px] text-pending font-body">
+									{eventPendingRequests.length} pending request{eventPendingRequests.length > 1 ? 's' : ''} for this game
+								</div>
+							{/if}
+						{/if}
+					</div>
+				</div>
+			{/if}
 
 			<!-- Sidebar -->
 			<div class="space-y-4">

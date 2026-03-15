@@ -63,6 +63,78 @@ export async function updateGuest(id: string, fields: Partial<Guest>): Promise<v
 	});
 }
 
+// --- Requests ---
+
+export interface TicketRequest {
+	id: string;
+	eventId: string;
+	requesterEmail: string;
+	requesterName: string;
+	seatCount: number;
+	status: 'pending' | 'approved' | 'rejected';
+	reviewedBy?: string;
+	reviewedAt?: string;
+	notes?: string;
+	createdAt: string;
+}
+
+export async function loadRequests(): Promise<TicketRequest[]> {
+	const [rows] = await bq.query({
+		query: 'SELECT * FROM `minutebox-marketing.tickets.requests` ORDER BY created_at DESC',
+	});
+	return rows.map(rowToRequest);
+}
+
+export async function loadRequestsByEmail(email: string): Promise<TicketRequest[]> {
+	const [rows] = await bq.query({
+		query: 'SELECT * FROM `minutebox-marketing.tickets.requests` WHERE requester_email = @email ORDER BY created_at DESC',
+		params: { email },
+	});
+	return rows.map(rowToRequest);
+}
+
+export async function insertRequest(r: TicketRequest): Promise<void> {
+	const requestsTable = dataset.table('requests');
+	await requestsTable.insert([requestToRow(r)]);
+}
+
+export async function updateRequestStatus(id: string, status: string, reviewedBy: string): Promise<void> {
+	await bq.query({
+		query: 'UPDATE `minutebox-marketing.tickets.requests` SET status = @status, reviewed_by = @reviewedBy, reviewed_at = CURRENT_TIMESTAMP() WHERE id = @id',
+		params: { id, status, reviewedBy },
+	});
+}
+
+function rowToRequest(row: Record<string, unknown>): TicketRequest {
+	return {
+		id: row.id as string,
+		eventId: row.event_id as string,
+		requesterEmail: row.requester_email as string,
+		requesterName: row.requester_name as string,
+		seatCount: Number(row.seat_count) || 1,
+		status: row.status as TicketRequest['status'],
+		reviewedBy: (row.reviewed_by as string) || undefined,
+		reviewedAt: row.reviewed_at ? (row.reviewed_at as { value: string }).value ?? String(row.reviewed_at) : undefined,
+		notes: (row.notes as string) || undefined,
+		createdAt: row.created_at ? (row.created_at as { value: string }).value ?? String(row.created_at) : '',
+	};
+}
+
+function requestToRow(r: TicketRequest): Record<string, unknown> {
+	return {
+		id: r.id,
+		event_id: r.eventId,
+		requester_email: r.requesterEmail,
+		requester_name: r.requesterName,
+		seat_count: r.seatCount,
+		status: r.status,
+		reviewed_by: r.reviewedBy || '',
+		reviewed_at: r.reviewedAt || null,
+		notes: r.notes || '',
+		created_at: r.createdAt,
+	};
+}
+
 // --- Row mapping ---
 
 function rowToAllocation(row: Record<string, unknown>): Allocation {
