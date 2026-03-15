@@ -4,11 +4,13 @@
 
 - **Never commit directly to `main`.** All changes must go through pull requests.
 - Create a feature branch, commit there, push, open a PR, then merge.
+- **Do not merge PRs unless the user explicitly tells you to.** Always present the PR for review first.
 - Branch protection is enforced on `main` (requires PR, no force pushes, enforced for admins).
 
 ## Deployment
 
 - Deployed to Cloud Run in `minutebox-marketing` project.
+- **Only deploy `main`. Only deploy when the user explicitly asks you to.**
 - No CI/CD — deploy is manual: `just deploy` or the full `gcloud run deploy` command.
 - Always include secrets and env vars when deploying:
   ```

@@ -68,7 +68,7 @@
 						</span>
 						<span class="flex items-center gap-1 ml-auto shrink-0">
 							{#if soldOut}
-								<span class="text-[8px] font-bold uppercase text-confirmed">Full</span>
+								<span class="text-[8px] font-bold uppercase text-declined">Full</span>
 							{/if}
 							<span class="flex gap-0.5">
 								{#each Array(event.totalSeats) as _, si}

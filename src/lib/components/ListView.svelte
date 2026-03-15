@@ -90,7 +90,7 @@
 								{/each}
 							</div>
 							{#if soldOut}
-								<span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-confirmed/15 text-confirmed">Sold Out</span>
+								<span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-declined/15 text-declined">Sold Out</span>
 							{:else if available > 0 && !past}
 								<span class="text-[10px] font-semibold text-confirmed font-body">{available} open</span>
 							{/if}
