@@ -92,9 +92,9 @@
 				const counts = countStatuses(allocs);
 				if (filter === 'confirmed') return counts.confirmed > 0;
 				if (filter === 'soldout') return isSoldOut(counts, e.totalSeats);
-				if (filter === 'pending') return counts.pending > 0;
+				if (filter === 'pending') return counts.pending > 0 || (pendingSeatsMap.get(e.id) ?? 0) > 0;
 				if (filter === 'restricted') return counts.restricted > 0;
-				if (filter === 'available') return (e.totalSeats - counts.confirmed - counts.pending - counts.restricted) > 0;
+				if (filter === 'available') return (e.totalSeats - counts.confirmed - counts.pending - counts.restricted - (pendingSeatsMap.get(e.id) ?? 0)) > 0;
 			}
 			return true;
 		})
