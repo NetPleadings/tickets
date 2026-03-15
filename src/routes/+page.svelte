@@ -43,7 +43,7 @@
 	let bigYearMode = $state<'timeline' | 'wall'>('timeline');
 	let listMode = $state<'cards' | 'table' | 'text'>('cards');
 	let showPast = $state(false);
-	let filter = $state<'all' | 'confirmed' | 'soldout' | 'pending' | 'available' | 'restricted' | 'marquee' | 'promo'>('all');
+	let filter = $state<'all' | 'confirmed' | 'soldout' | 'pending' | 'available' | 'restricted' | 'marquee' | 'promo'>('available');
 
 	// Calendar navigation
 	const now = new Date();
