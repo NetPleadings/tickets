@@ -6,6 +6,7 @@
 	const navItems = $derived.by(() => {
 		const items = [
 			{ href: '/', label: 'Schedule', match: (p: string) => p === '/' },
+			{ href: '/my-schedule', label: 'My Games', match: (p: string) => p.startsWith('/my-schedule') },
 		];
 		if ($currentUser && ($currentUser.role === 'admin' || $currentUser.role === 'manager')) {
 			items.push({ href: '/team', label: 'Team', match: (p: string) => p.startsWith('/team') });
