@@ -216,7 +216,7 @@
 	<div class="flex flex-wrap items-center gap-1.5 text-[11px] font-body text-slate px-1">
 		{#each [
 			{ key: 'confirmed', label: 'Confirmed', dot: 'w-2 h-2 rounded-full bg-confirmed', active: 'bg-confirmed/15 text-confirmed' },
-			{ key: 'soldout', label: 'Sold Out', dot: 'w-3 h-2 rounded-sm bg-confirmed', active: 'bg-confirmed/15 text-confirmed' },
+			{ key: 'soldout', label: 'Sold Out', dot: 'w-3 h-2 rounded-sm bg-declined', active: 'bg-declined/15 text-declined' },
 			{ key: 'pending', label: 'Pending', dot: 'w-2 h-2 rounded-full bg-pending', active: 'bg-pending/15 text-pending' },
 			{ key: 'available', label: 'Available', dot: 'w-2 h-2 rounded-full bg-crystal-pale border border-crystal-pale', active: 'bg-crystal text-graphite' },
 			{ key: 'restricted', label: 'Restricted', dot: 'w-2 h-2 rounded-full bg-graphite/40', active: 'bg-graphite/10 text-graphite' },
