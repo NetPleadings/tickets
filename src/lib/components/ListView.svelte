@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Event, Allocation } from '$lib/types';
-	import { formatDate, isUpcoming, buildAllocsByEvent, countStatuses, seatDotColor } from '$lib/utils';
+	import { formatDate, isUpcoming, buildAllocsByEvent, countStatuses, seatDotColor, isSoldOut } from '$lib/utils';
 	import { teamAbbrevs } from '$lib/data/schedule';
 	import { promotions, promoColor } from '$lib/data/promotions';
 
@@ -38,7 +38,8 @@
 				{#each monthEvents as event (event.id)}
 					{@const allocs = allocsByEvent.get(event.id) ?? []}
 					{@const counts = countStatuses(allocs)}
-					{@const available = event.totalSeats - counts.confirmed - counts.pending}
+					{@const available = event.totalSeats - counts.confirmed - counts.pending - counts.restricted}
+					{@const soldOut = isSoldOut(counts, event.totalSeats)}
 					{@const past = !isUpcoming(event.date)}
 					{@const promos = promotions[event.date] ?? []}
 					<a
@@ -86,10 +87,10 @@
 									<div class="w-2.5 h-2.5 rounded-full {seatDotColor(si, counts)} transition-transform group-hover:scale-110"></div>
 								{/each}
 							</div>
-							{#if available > 0 && !past}
+							{#if soldOut}
+								<span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-confirmed/15 text-confirmed">Sold Out</span>
+							{:else if available > 0 && !past}
 								<span class="text-[10px] font-semibold text-confirmed font-body">{available} open</span>
-							{:else if available === 0}
-								<span class="text-[10px] font-semibold text-slate font-body">Full</span>
 							{/if}
 						</div>
 
