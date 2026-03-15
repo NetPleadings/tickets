@@ -170,13 +170,13 @@
 			</div>
 			<div class="divide-y divide-crystal-pale/60">
 				{#each attendeeStats as person, i (person.name)}
-					<div class="grid grid-cols-[1fr_80px_80px] gap-4 px-5 py-3.5 items-center hover:bg-crystal/30 transition-colors">
+					<a href="/team/{encodeURIComponent(person.email || person.name)}" class="grid grid-cols-[1fr_80px_80px] gap-4 px-5 py-3.5 items-center hover:bg-crystal/30 transition-colors group">
 						<div class="flex items-center gap-3">
 							<div class="w-9 h-9 rounded-lg {person.isGuest ? 'bg-yellow/20 text-gold' : avatarColors[i % avatarColors.length] + ' text-white'} flex items-center justify-center font-display font-semibold text-sm">
 								{initials(person.name)}
 							</div>
 							<div>
-								<p class="font-body font-semibold text-sm text-graphite">
+								<p class="font-body font-semibold text-sm text-graphite group-hover:text-jays-blue transition-colors">
 									{person.name}
 									{#if person.isGuest}
 										<span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-yellow/15 text-gold ml-1">Guest</span>
@@ -199,7 +199,7 @@
 							<span class="font-display font-bold text-confirmed">{person.upcoming}</span>
 							<p class="text-[9px] text-slate font-body">upcoming</p>
 						</div>
-					</div>
+					</a>
 				{/each}
 			</div>
 		</div>
@@ -212,7 +212,7 @@
 			<div class="bg-white rounded-xl border border-crystal-pale shadow-sm overflow-hidden">
 				<div class="divide-y divide-crystal-pale/60">
 					{#each $team as member, i (member.email)}
-						<div class="px-5 py-2.5 flex items-center gap-3 hover:bg-crystal/30 transition-colors">
+						<a href="/team/{encodeURIComponent(member.email)}" class="px-5 py-2.5 flex items-center gap-3 hover:bg-crystal/30 transition-colors group">
 							{#if member.photoUrl}
 								<img src={member.photoUrl} alt={member.name} class="w-7 h-7 rounded-md object-cover" />
 							{:else}
@@ -221,13 +221,13 @@
 								</div>
 							{/if}
 							<div class="flex-1 min-w-0">
-								<span class="font-body text-sm font-medium text-graphite">{member.name}</span>
+								<span class="font-body text-sm font-medium text-graphite group-hover:text-jays-blue transition-colors">{member.name}</span>
 								{#if member.title}
 									<span class="text-slate text-[11px] font-body ml-1">· {member.title}</span>
 								{/if}
 							</div>
 							<span class="text-[11px] text-silver font-body">{member.email}</span>
-						</div>
+						</a>
 					{/each}
 				</div>
 			</div>
