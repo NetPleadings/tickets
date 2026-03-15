@@ -119,6 +119,39 @@
 	function doUnassign(allocId: string) {
 		unassignSeat(allocId);
 	}
+
+	function restrictSeat(seatId: string) {
+		if (!event) return;
+		assignSeat({
+			eventId: event.id,
+			seatId,
+			assignee: '',
+			status: 'restricted',
+		});
+	}
+
+	function restrictAllAvailable() {
+		if (!event) return;
+		for (const seat of eventSeats) {
+			const alloc = getAllocForSeat(seat.id);
+			if (!alloc) {
+				assignSeat({
+					eventId: event.id,
+					seatId: seat.id,
+					assignee: '',
+					status: 'restricted',
+				});
+			}
+		}
+	}
+
+	function unrestrictAll() {
+		for (const alloc of eventAllocs) {
+			if (alloc.status === 'restricted') {
+				unassignSeat(alloc.id);
+			}
+		}
+	}
 </script>
 
 {#if event}
@@ -165,6 +198,26 @@
 								<span class="text-confirmed font-semibold">{available} available</span>
 							{:else if restricted < event.totalSeats}
 								<span class="text-slate">All assigned</span>
+							{/if}
+							{#if canManage}
+								{#if available > 0}
+									<button
+										onclick={restrictAllAvailable}
+										class="ml-2 px-2 py-0.5 rounded text-[10px] font-semibold bg-graphite/10 text-graphite/60 hover:bg-graphite/20 transition-colors"
+										title="Restrict all available seats"
+									>
+										Restrict all
+									</button>
+								{/if}
+								{#if restricted > 0}
+									<button
+										onclick={unrestrictAll}
+										class="px-2 py-0.5 rounded text-[10px] font-semibold bg-confirmed/10 text-confirmed hover:bg-confirmed/20 transition-colors"
+										title="Unrestrict all restricted seats"
+									>
+										Unrestrict all
+									</button>
+								{/if}
 							{/if}
 						</div>
 					</div>
@@ -283,6 +336,13 @@
 												class="text-[11px] font-semibold font-body px-3 py-1.5 rounded-lg bg-graphite text-white hover:bg-graphite-deep transition-colors"
 											>
 												Assign
+											</button>
+											<button
+												onclick={() => restrictSeat(seat.id)}
+												class="text-[11px] font-semibold font-body px-2.5 py-1 rounded-md bg-graphite/10 text-graphite/50 hover:bg-graphite/20 transition-colors"
+												title="Mark as restricted"
+											>
+												Restrict
 											</button>
 										{:else}
 											<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-crystal text-silver">
