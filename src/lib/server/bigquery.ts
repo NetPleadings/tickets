@@ -16,7 +16,19 @@ export async function loadAllocations(): Promise<Allocation[]> {
 }
 
 export async function insertAllocation(a: Allocation): Promise<void> {
-	await allocationsTable.insert([allocationToRow(a)]);
+	await bq.query({
+		query: `INSERT INTO \`minutebox-marketing.tickets.allocations\`
+			(id, event_id, seat_id, assignee, assignee_email, status, assigned_by, assigned_at, notes, is_guest, guest_company)
+			VALUES (@id, @eventId, @seatId, @assignee, @assigneeEmail, @status, @assignedBy, @assignedAt, @notes, @isGuest, @guestCompany)`,
+		params: {
+			id: a.id, eventId: a.eventId, seatId: a.seatId,
+			assignee: a.assignee || '', assigneeEmail: a.assigneeEmail || '',
+			status: a.status, assignedBy: a.assignedBy || '',
+			assignedAt: a.assignedAt ? bq.timestamp(a.assignedAt) : null,
+			notes: a.notes || '', isGuest: a.isGuest ?? false,
+			guestCompany: a.guestCompany || '',
+		},
+	});
 }
 
 export async function updateAllocationStatus(id: string, status: Allocation['status']): Promise<void> {
@@ -43,7 +55,17 @@ export async function loadGuests(): Promise<Guest[]> {
 }
 
 export async function insertGuest(g: Guest): Promise<void> {
-	await guestsTable.insert([guestToRow(g)]);
+	await bq.query({
+		query: `INSERT INTO \`minutebox-marketing.tickets.guests\`
+			(id, name, company, email, notes, created_at)
+			VALUES (@id, @name, @company, @email, @notes, @createdAt)`,
+		params: {
+			id: g.id, name: g.name,
+			company: g.company || '', email: g.email || '',
+			notes: g.notes || '',
+			createdAt: g.createdAt ? bq.timestamp(g.createdAt) : null,
+		},
+	});
 }
 
 export async function updateGuest(id: string, fields: Partial<Guest>): Promise<void> {
@@ -102,8 +124,20 @@ export async function loadRequestsByEmail(email: string): Promise<TicketRequest[
 }
 
 export async function insertRequest(r: TicketRequest): Promise<void> {
-	const requestsTable = dataset.table('requests');
-	await requestsTable.insert([requestToRow(r)]);
+	await bq.query({
+		query: `INSERT INTO \`minutebox-marketing.tickets.requests\`
+			(id, event_id, requester_email, requester_name, seat_count, companions, status, reviewed_by, reviewed_at, notes, created_at)
+			VALUES (@id, @eventId, @requesterEmail, @requesterName, @seatCount, @companions, @status, @reviewedBy, NULL, @notes, @createdAt)`,
+		params: {
+			id: r.id, eventId: r.eventId,
+			requesterEmail: r.requesterEmail, requesterName: r.requesterName,
+			seatCount: r.seatCount,
+			companions: r.companions ? JSON.stringify(r.companions) : null,
+			status: r.status, reviewedBy: r.reviewedBy || '',
+			notes: r.notes || '',
+			createdAt: bq.timestamp(r.createdAt),
+		},
+	});
 }
 
 export async function updateRequestStatus(id: string, status: string, reviewedBy: string): Promise<void> {
