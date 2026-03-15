@@ -77,7 +77,7 @@
 								{event.isMarquee
 									? 'bg-jays-navy text-white hover:bg-jays-blue'
 									: soldOut
-											? 'bg-confirmed/15 text-confirmed hover:bg-confirmed/25'
+											? 'bg-declined/15 text-declined hover:bg-declined/25'
 											: 'bg-jays-light text-jays-navy hover:bg-jays-blue/20'}
 								{past ? 'opacity-40' : ''}
 								{isTodayCell ? 'ring-1 ring-yellow' : ''}"

@@ -72,7 +72,7 @@
 							{ev.isMarquee
 								? 'bg-jays-navy text-white hover:bg-jays-blue'
 								: soldOut
-									? 'bg-confirmed/20 text-confirmed hover:bg-confirmed/30'
+									? 'bg-declined/20 text-declined hover:bg-declined/30'
 									: 'bg-jays-light text-jays-navy hover:bg-jays-blue/20'}
 							{past ? 'opacity-50' : ''}"
 					>
