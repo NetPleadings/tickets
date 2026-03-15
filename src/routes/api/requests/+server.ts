@@ -11,13 +11,30 @@ import { getBookingWindowDays } from '$lib/server/auth.js';
 import { events, seats } from '$lib/data/schedule.js';
 
 export async function GET({ locals }) {
-	// Admins and managers see all requests, viewers see only their own
+	const allRequests = await loadRequests();
+
+	// Admins and managers see everything
 	if (locals.user.role === 'admin' || locals.user.role === 'manager') {
-		const requests = await loadRequests();
-		return json({ ok: true, requests });
+		return json({ ok: true, requests: allRequests });
 	}
-	const requests = await loadRequestsByEmail(locals.user.email);
-	return json({ ok: true, requests });
+
+	// Viewers see their own requests in full detail
+	const myRequests = allRequests.filter((r) => r.requesterEmail === locals.user.email);
+
+	// Plus all other pending requests with minimal info (for availability counts)
+	const otherPending = allRequests
+		.filter((r) => r.status === 'pending' && r.requesterEmail !== locals.user.email)
+		.map((r) => ({
+			id: r.id,
+			eventId: r.eventId,
+			seatCount: r.seatCount,
+			status: r.status,
+			requesterEmail: '',
+			requesterName: '',
+			createdAt: r.createdAt,
+		}));
+
+	return json({ ok: true, requests: [...myRequests, ...otherPending] });
 }
 
 export async function POST({ request, locals }) {
