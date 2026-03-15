@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { accountManager } from '$lib/data/terrace-club';
-	import { currentUser, userLoaded, previewAsManager } from '$lib/stores/user';
+	import { currentUser, userLoaded, previewMode } from '$lib/stores/user';
 
 	const navItems = $derived.by(() => {
 		const items = [
@@ -43,7 +43,7 @@
 			</a>
 
 			<!-- Desktop nav -->
-			<div class="hidden md:flex items-center gap-0.5">
+			<div class="hidden lg:flex items-center gap-0.5">
 				{#each navItems as nav}
 					<a
 						href={nav.href}
@@ -81,13 +81,13 @@
 						<span class="text-[12px] text-silver font-body">{displayName}</span>
 						{#if $currentUser.role === 'admin'}
 							<button
-								onclick={() => previewAsManager.update((v) => !v)}
+								onclick={() => previewMode.update((m) => m === 'off' ? 'manager' : m === 'manager' ? 'viewer' : 'off')}
 								class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded transition-all cursor-pointer {
-									$previewAsManager ? 'bg-pending/30 text-pending' : 'bg-white/5 text-silver hover:bg-white/10'
+									$previewMode !== 'off' ? 'bg-pending/30 text-pending' : 'bg-white/5 text-silver hover:bg-white/10'
 								}"
-								title="Preview app as a Manager"
+								title="Cycle preview: Admin → Manager → Viewer"
 							>
-								{$previewAsManager ? 'Previewing Manager' : 'Preview'}
+								{$previewMode === 'manager' ? 'Previewing Manager' : $previewMode === 'viewer' ? 'Previewing Viewer' : 'Preview'}
 							</button>
 						{/if}
 					</div>
@@ -96,7 +96,7 @@
 
 			<!-- Mobile hamburger -->
 			<button
-				class="md:hidden text-silver hover:text-white transition-colors p-1"
+				class="lg:hidden text-silver hover:text-white transition-colors p-1"
 				onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
 				aria-label="Toggle menu"
 			>
@@ -115,7 +115,7 @@
 
 	<!-- Mobile menu -->
 	{#if mobileMenuOpen}
-		<div class="md:hidden border-t border-graphite-deep bg-graphite">
+		<div class="lg:hidden border-t border-graphite-deep bg-graphite">
 			<div class="px-4 py-3 space-y-1">
 				{#each navItems as nav}
 					<a
@@ -152,12 +152,12 @@
 					</div>
 					{#if $currentUser.role === 'admin'}
 						<button
-							onclick={() => previewAsManager.update((v) => !v)}
+							onclick={() => previewMode.update((m) => m === 'off' ? 'manager' : m === 'manager' ? 'viewer' : 'off')}
 							class="block w-full text-left px-3 py-2.5 rounded-lg text-[14px] font-medium font-body transition-all {
-								$previewAsManager ? 'text-pending bg-pending/10' : 'text-silver hover:bg-white/5'
+								$previewMode !== 'off' ? 'text-pending bg-pending/10' : 'text-silver hover:bg-white/5'
 							}"
 						>
-							{$previewAsManager ? 'Exit Manager Preview' : 'Preview as Manager'}
+							{$previewMode === 'manager' ? 'Previewing as Manager' : $previewMode === 'viewer' ? 'Previewing as Viewer' : 'Preview as...'}
 						</button>
 					{/if}
 				{/if}

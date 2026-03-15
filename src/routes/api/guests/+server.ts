@@ -6,7 +6,10 @@ export async function GET() {
 	return json({ ok: true, guests });
 }
 
-export async function POST({ request }: { request: Request }) {
+export async function POST({ request, locals }) {
+	if (locals.user.role !== 'admin') {
+		return json({ ok: false, error: 'Forbidden' }, { status: 403 });
+	}
 	const body = await request.json();
 
 	switch (body.action) {

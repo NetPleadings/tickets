@@ -46,7 +46,10 @@ export async function getUserFromRequest(request: Request): Promise<AppUser> {
 	const email = header.replace(/^accounts\.google\.com:/, '').toLowerCase().trim();
 
 	if (!email) {
-		// Local dev fallback — no IAP headers
+		// Local dev fallback — no IAP headers. Only safe because Cloud Run always has IAP.
+		if (process.env.NODE_ENV === 'production') {
+			return { email: 'anonymous', role: 'viewer' };
+		}
 		return { email: 'dev@localhost', role: 'admin' };
 	}
 

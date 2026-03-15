@@ -1,11 +1,19 @@
 import { writable, get } from 'svelte/store';
 
+export interface RequestCompanion {
+	name: string;
+	type: 'team' | 'guest';
+	email?: string;
+	company?: string;
+}
+
 export interface TicketRequest {
 	id: string;
 	eventId: string;
 	requesterEmail: string;
 	requesterName: string;
 	seatCount: number;
+	companions?: RequestCompanion[];
 	status: 'pending' | 'approved' | 'rejected';
 	reviewedBy?: string;
 	reviewedAt?: string;
@@ -32,6 +40,7 @@ export async function createRequest(params: {
 	eventId: string;
 	requesterName: string;
 	seatCount: number;
+	companions?: RequestCompanion[];
 	notes?: string;
 }): Promise<{ ok: boolean; error?: string }> {
 	try {

@@ -42,12 +42,23 @@ export async function POST({ request, locals }) {
 				}
 			}
 
+			// Validate companions — max 3, each must have a name and type
+			const companions = Array.isArray(body.companions)
+				? body.companions.slice(0, 3).map((c: { name: string; type: string; email?: string; company?: string }) => ({
+					name: String(c.name || '').trim(),
+					type: c.type === 'guest' ? 'guest' as const : 'team' as const,
+					email: c.email ? String(c.email).trim() : undefined,
+					company: c.company ? String(c.company).trim() : undefined,
+				})).filter((c: { name: string }) => c.name)
+				: undefined;
+
 			const req: TicketRequest = {
 				id: `req-${Date.now()}`,
 				eventId: body.eventId,
 				requesterEmail: locals.user.email,
 				requesterName: body.requesterName || locals.user.email.split('@')[0],
 				seatCount: body.seatCount || 1,
+				companions: companions?.length ? companions : undefined,
 				status: 'pending',
 				createdAt: new Date().toISOString(),
 				notes: body.notes || '',

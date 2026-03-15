@@ -8,14 +8,14 @@
 	import { promotions, promoColor, promoIcon } from '$lib/data/promotions';
 	import { formatDateFull } from '$lib/utils';
 	import { teamAbbrevs } from '$lib/data/schedule';
-	import { currentUser, previewAsManager, getEffectiveRole, bookingWindowDays } from '$lib/stores/user';
+	import { currentUser, previewMode, getEffectiveRole, bookingWindowDays } from '$lib/stores/user';
 	import { createRequest, requests } from '$lib/stores/requests';
 	import { onMount } from 'svelte';
 
 	onMount(() => ensureTeamLoaded());
 
 	const effectiveRole = $derived(
-		$currentUser ? getEffectiveRole($currentUser.role, $previewAsManager) : 'viewer'
+		$currentUser ? getEffectiveRole($currentUser.role, $previewMode) : 'viewer'
 	);
 	const canManage = $derived(effectiveRole === 'admin');
 
@@ -51,11 +51,60 @@
 	);
 
 	// Request state
-	let requestSeatCount = $state(1);
+	interface CompanionEntry {
+		name: string;
+		type: 'team' | 'guest';
+		email?: string;
+		company?: string;
+	}
+	let requestCompanions = $state<CompanionEntry[]>([]);
 	let requestNotes = $state('');
 	let requestSubmitting = $state(false);
 	let requestError = $state('');
 	let requestSuccess = $state(false);
+
+	// Adding companion state
+	let addingCompanion = $state(false);
+	let companionMode = $state<'team' | 'guest'>('team');
+	let companionSearch = $state('');
+	let companionGuestName = $state('');
+	let companionGuestCompany = $state('');
+	let companionGuestEmail = $state('');
+
+	const requestSeatCount = $derived(1 + requestCompanions.length);
+	const canAddCompanion = $derived(requestCompanions.length < 3 && requestCompanions.length < available - 1);
+
+	const companionFilteredTeam = $derived(
+		$team.filter((m) => {
+			if (!companionSearch) return true;
+			const q = companionSearch.toLowerCase();
+			return m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q);
+		}).filter((m) => !requestCompanions.some((c) => c.email === m.email))
+	);
+
+	function addTeamCompanion(name: string, email: string) {
+		requestCompanions = [...requestCompanions, { name, type: 'team', email }];
+		addingCompanion = false;
+		companionSearch = '';
+	}
+
+	function addGuestCompanion() {
+		if (!companionGuestName.trim()) return;
+		requestCompanions = [...requestCompanions, {
+			name: companionGuestName.trim(),
+			type: 'guest',
+			email: companionGuestEmail.trim() || undefined,
+			company: companionGuestCompany.trim() || undefined,
+		}];
+		addingCompanion = false;
+		companionGuestName = '';
+		companionGuestCompany = '';
+		companionGuestEmail = '';
+	}
+
+	function removeCompanion(index: number) {
+		requestCompanions = requestCompanions.filter((_, i) => i !== index);
+	}
 
 	async function submitRequest() {
 		if (!event || !$currentUser) return;
@@ -65,12 +114,14 @@
 			eventId: event.id,
 			requesterName: $currentUser.email.split('@')[0],
 			seatCount: requestSeatCount,
+			companions: requestCompanions.length > 0 ? requestCompanions : undefined,
 			notes: requestNotes,
 		});
 		requestSubmitting = false;
 		if (result.ok) {
 			requestSuccess = true;
 			requestNotes = '';
+			requestCompanions = [];
 		} else {
 			requestError = result.error || 'Failed to submit request';
 		}
@@ -422,18 +473,139 @@
 							</div>
 						{:else}
 							<h3 class="font-display font-semibold text-graphite mb-3">Request Tickets</h3>
-							<div class="flex items-end gap-3">
-								<div>
-									<label class="text-[11px] font-body text-slate block mb-1">Seats</label>
-									<select
-										bind:value={requestSeatCount}
-										class="px-3 py-2 rounded-lg border border-crystal-pale text-[13px] font-body text-graphite focus:outline-none focus:ring-2 focus:ring-yellow/50"
-									>
-										{#each Array(Math.min(available, 4)) as _, i}
-											<option value={i + 1}>{i + 1}</option>
-										{/each}
-									</select>
+
+							<!-- Seat 1: the requester -->
+							<div class="space-y-2 mb-3">
+								<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-crystal/50 border border-crystal-pale">
+									<div class="w-6 h-6 rounded-full bg-graphite/10 flex items-center justify-center text-[10px] font-bold text-graphite">1</div>
+									<div class="flex-1 min-w-0">
+										<span class="text-[13px] font-semibold text-graphite font-body">{$currentUser?.email.split('@')[0]}</span>
+										<span class="text-[11px] text-slate font-body ml-1">(you)</span>
+									</div>
 								</div>
+
+								<!-- Companion seats -->
+								{#each requestCompanions as comp, i}
+									<div class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white border border-crystal-pale">
+										<div class="w-6 h-6 rounded-full bg-graphite/10 flex items-center justify-center text-[10px] font-bold text-graphite">{i + 2}</div>
+										<div class="flex-1 min-w-0">
+											<span class="text-[13px] font-semibold text-graphite font-body">{comp.name}</span>
+											{#if comp.type === 'guest'}
+												<span class="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded-full bg-pending/10 text-pending ml-1">Guest</span>
+												{#if comp.company}
+													<span class="text-[11px] text-slate font-body ml-1">· {comp.company}</span>
+												{/if}
+											{:else}
+												<span class="text-[11px] text-slate font-body ml-1">{comp.email}</span>
+											{/if}
+										</div>
+										<button
+											onclick={() => removeCompanion(i)}
+											class="text-silver hover:text-declined transition-colors shrink-0"
+										>
+											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+											</svg>
+										</button>
+									</div>
+								{/each}
+
+								<!-- Add companion -->
+								{#if canAddCompanion && !addingCompanion}
+									<button
+										onclick={() => { addingCompanion = true; companionMode = 'team'; companionSearch = ''; }}
+										class="w-full py-2.5 rounded-lg border-2 border-dashed border-crystal-pale text-slate font-body font-semibold text-[12px] hover:border-graphite hover:text-graphite transition-colors"
+									>
+										+ Add Companion (Seat {requestCompanions.length + 2})
+									</button>
+								{/if}
+
+								<!-- Companion picker -->
+								{#if addingCompanion}
+									<div class="rounded-lg border border-crystal-pale bg-white p-3">
+										<div class="flex items-center justify-between mb-2">
+											<div class="flex gap-1">
+												<button
+													class="px-2.5 py-1 rounded text-[11px] font-semibold font-body transition-colors {companionMode === 'team' ? 'bg-graphite text-white' : 'text-slate hover:bg-crystal'}"
+													onclick={() => { companionMode = 'team'; }}
+												>
+													Team Member
+												</button>
+												<button
+													class="px-2.5 py-1 rounded text-[11px] font-semibold font-body transition-colors {companionMode === 'guest' ? 'bg-graphite text-white' : 'text-slate hover:bg-crystal'}"
+													onclick={() => { companionMode = 'guest'; }}
+												>
+													Guest
+												</button>
+											</div>
+											<button onclick={() => { addingCompanion = false; }} class="text-silver hover:text-graphite transition-colors">
+												<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+													<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+												</svg>
+											</button>
+										</div>
+
+										{#if companionMode === 'team'}
+											<input
+												type="text"
+												placeholder="Search team..."
+												bind:value={companionSearch}
+												class="w-full px-3 py-2 rounded-lg border border-crystal-pale text-[12px] font-body focus:outline-none focus:ring-1 focus:ring-graphite mb-2"
+											/>
+											<div class="space-y-0.5 max-h-36 overflow-y-auto">
+												{#each companionFilteredTeam.slice(0, 10) as member (member.email)}
+													<button
+														class="w-full text-left px-3 py-2 rounded-lg text-[12px] font-body hover:bg-crystal text-graphite transition-colors"
+														onclick={() => addTeamCompanion(member.name, member.email)}
+													>
+														<span class="font-medium">{member.name}</span>
+														{#if member.title}
+															<span class="text-slate ml-1">· {member.title}</span>
+														{/if}
+													</button>
+												{:else}
+													<p class="text-[12px] text-silver font-body py-2 text-center">
+														{$team.length === 0 ? 'Team not loaded' : 'No matches'}
+													</p>
+												{/each}
+											</div>
+										{:else}
+											<div class="space-y-2">
+												<input
+													type="text"
+													placeholder="Guest name *"
+													bind:value={companionGuestName}
+													class="w-full px-3 py-2 rounded-lg border border-crystal-pale text-[12px] font-body focus:outline-none focus:ring-1 focus:ring-graphite"
+												/>
+												<div class="grid grid-cols-2 gap-2">
+													<input
+														type="text"
+														placeholder="Company (optional)"
+														bind:value={companionGuestCompany}
+														class="px-3 py-2 rounded-lg border border-crystal-pale text-[12px] font-body focus:outline-none focus:ring-1 focus:ring-graphite"
+													/>
+													<input
+														type="email"
+														placeholder="Email (optional)"
+														bind:value={companionGuestEmail}
+														class="px-3 py-2 rounded-lg border border-crystal-pale text-[12px] font-body focus:outline-none focus:ring-1 focus:ring-graphite"
+													/>
+												</div>
+												<button
+													onclick={addGuestCompanion}
+													disabled={!companionGuestName.trim()}
+													class="w-full py-2 rounded-lg bg-graphite text-white font-body font-semibold text-[12px] hover:bg-graphite-deep transition-colors disabled:opacity-40"
+												>
+													Add Guest
+												</button>
+											</div>
+										{/if}
+									</div>
+								{/if}
+							</div>
+
+							<!-- Notes + Submit -->
+							<div class="flex items-end gap-3">
 								<div class="flex-1">
 									<label class="text-[11px] font-body text-slate block mb-1">Notes (optional)</label>
 									<input
@@ -448,7 +620,7 @@
 									disabled={requestSubmitting}
 									class="px-4 py-2 rounded-lg text-[13px] font-semibold font-body bg-graphite text-white hover:bg-graphite-deep transition-colors disabled:opacity-50 shrink-0"
 								>
-									{requestSubmitting ? 'Submitting...' : 'Request'}
+									{requestSubmitting ? 'Submitting...' : `Request ${requestSeatCount} Seat${requestSeatCount > 1 ? 's' : ''}`}
 								</button>
 							</div>
 							{#if requestError}

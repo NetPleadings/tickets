@@ -12,8 +12,22 @@ const isBrowser = typeof window !== 'undefined';
 export const currentUser = writable<CurrentUser | null>(null);
 export const bookingWindowDays = writable<number>(60);
 export const userLoaded = writable(false);
-// Admin preview mode — when true, admins see the app as a manager would
-export const previewAsManager = writable(false);
+// Admin preview mode — cycles through: off (admin) → manager → viewer
+export type PreviewMode = 'off' | 'manager' | 'viewer';
+export const previewMode = writable<PreviewMode>('off');
+// Keep backward compat alias
+export const previewAsManager = {
+	subscribe: (fn: (v: boolean) => void) => {
+		return previewMode.subscribe((m) => fn(m !== 'off'));
+	},
+	update: (_fn: (v: boolean) => boolean) => {
+		previewMode.update((m) => {
+			if (m === 'off') return 'manager';
+			if (m === 'manager') return 'viewer';
+			return 'off';
+		});
+	},
+};
 
 export async function loadCurrentUser() {
 	if (!isBrowser) return;
@@ -40,7 +54,14 @@ export function isManagerOrAbove(role: Role): boolean {
  * Returns the effective role, accounting for admin preview mode.
  * Use this for UI visibility decisions (not server-side enforcement).
  */
-export function getEffectiveRole(role: Role, previewing: boolean): Role {
-	if (role === 'admin' && previewing) return 'manager';
+/**
+ * Returns the effective role, accounting for admin preview mode.
+ * Use this for UI visibility decisions (not server-side enforcement).
+ * Accepts either a boolean (legacy) or PreviewMode string.
+ */
+export function getEffectiveRole(role: Role, previewing: boolean | PreviewMode): Role {
+	if (role !== 'admin') return role;
+	if (previewing === true || previewing === 'manager') return 'manager';
+	if (previewing === 'viewer') return 'viewer';
 	return role;
 }

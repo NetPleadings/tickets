@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { events } from '$lib/data/schedule';
 	import { allocations } from '$lib/stores/allocations';
-	import { currentUser, previewAsManager, getEffectiveRole, bookingWindowDays } from '$lib/stores/user';
+	import { currentUser, previewMode, getEffectiveRole, bookingWindowDays } from '$lib/stores/user';
 	import { requests, requestsLoaded, loadRequests, approveRequest, rejectRequest } from '$lib/stores/requests';
 	import { buildAllocsByEvent, countStatuses, isUpcoming } from '$lib/utils';
 	import { onMount } from 'svelte';
@@ -9,7 +9,7 @@
 	onMount(() => loadRequests());
 
 	const effectiveRole = $derived(
-		$currentUser ? getEffectiveRole($currentUser.role, $previewAsManager) : 'viewer'
+		$currentUser ? getEffectiveRole($currentUser.role, $previewMode) : 'viewer'
 	);
 	const isAdminView = $derived(effectiveRole === 'admin');
 
@@ -143,6 +143,22 @@
 										{event.date} · {event.time}
 									{/if}
 								</div>
+
+								{#if req.companions && req.companions.length > 0}
+									<div class="mt-2 flex flex-wrap gap-1.5">
+										{#each req.companions as comp}
+											<span class="inline-flex items-center gap-1 text-[11px] font-body px-2 py-0.5 rounded-full border border-crystal-pale bg-crystal/30 text-graphite">
+												{comp.name}
+												{#if comp.type === 'guest'}
+													<span class="text-[8px] font-bold uppercase text-pending">Guest</span>
+												{/if}
+												{#if comp.company}
+													<span class="text-slate">· {comp.company}</span>
+												{/if}
+											</span>
+										{/each}
+									</div>
+								{/if}
 
 								{#if req.notes}
 									<p class="text-[12px] text-slate font-body mt-1 italic">"{req.notes}"</p>

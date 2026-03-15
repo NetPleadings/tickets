@@ -65,12 +65,20 @@ export async function updateGuest(id: string, fields: Partial<Guest>): Promise<v
 
 // --- Requests ---
 
+export interface RequestCompanion {
+	name: string;
+	type: 'team' | 'guest';
+	email?: string;
+	company?: string;
+}
+
 export interface TicketRequest {
 	id: string;
 	eventId: string;
 	requesterEmail: string;
 	requesterName: string;
 	seatCount: number;
+	companions?: RequestCompanion[];
 	status: 'pending' | 'approved' | 'rejected';
 	reviewedBy?: string;
 	reviewedAt?: string;
@@ -106,12 +114,19 @@ export async function updateRequestStatus(id: string, status: string, reviewedBy
 }
 
 function rowToRequest(row: Record<string, unknown>): TicketRequest {
+	let companions: RequestCompanion[] | undefined;
+	if (row.companions) {
+		try {
+			companions = typeof row.companions === 'string' ? JSON.parse(row.companions) : row.companions as RequestCompanion[];
+		} catch { /* ignore parse errors */ }
+	}
 	return {
 		id: row.id as string,
 		eventId: row.event_id as string,
 		requesterEmail: row.requester_email as string,
 		requesterName: row.requester_name as string,
 		seatCount: Number(row.seat_count) || 1,
+		companions,
 		status: row.status as TicketRequest['status'],
 		reviewedBy: (row.reviewed_by as string) || undefined,
 		reviewedAt: row.reviewed_at ? (row.reviewed_at as { value: string }).value ?? String(row.reviewed_at) : undefined,
@@ -127,6 +142,7 @@ function requestToRow(r: TicketRequest): Record<string, unknown> {
 		requester_email: r.requesterEmail,
 		requester_name: r.requesterName,
 		seat_count: r.seatCount,
+		companions: r.companions ? JSON.stringify(r.companions) : null,
 		status: r.status,
 		reviewed_by: r.reviewedBy || '',
 		reviewed_at: r.reviewedAt || null,

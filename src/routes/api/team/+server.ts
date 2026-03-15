@@ -2,10 +2,9 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { listOrgUsers } from '$lib/server/directory.js';
 
-export const GET: RequestHandler = async ({ locals }) => {
-	if (locals.user.role !== 'admin' && locals.user.role !== 'manager') {
-		return json({ ok: false, error: 'Forbidden' }, { status: 403 });
-	}
+export const GET: RequestHandler = async () => {
+	// All authenticated users can see the team directory (used for companion picker).
+	// IAP ensures only MinuteBox employees reach this endpoint.
 	try {
 		const users = await listOrgUsers();
 		return json({ ok: true, users });
