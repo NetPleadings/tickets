@@ -17,7 +17,11 @@
 	function loadViewState() {
 		try {
 			const raw = sessionStorage.getItem(SS_KEY);
-			if (!raw) return;
+			if (!raw) {
+				// Default to list view on mobile (< 768px)
+				if (window.innerWidth < 768) view = 'list';
+				return;
+			}
 			const s = JSON.parse(raw);
 			if (s.view) view = s.view;
 			if (s.bigYearMode) bigYearMode = s.bigYearMode;

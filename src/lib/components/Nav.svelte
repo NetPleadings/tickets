@@ -24,6 +24,14 @@
 		$currentUser?.role === 'admin' ? 'Admin' :
 		$currentUser?.role === 'manager' ? 'Manager' : ''
 	);
+
+	let mobileMenuOpen = $state(false);
+
+	// Close mobile menu on navigation
+	$effect(() => {
+		page.url.pathname;
+		mobileMenuOpen = false;
+	});
 </script>
 
 <nav class="bg-graphite border-b border-graphite-deep sticky top-0 z-40">
@@ -34,7 +42,8 @@
 				<span class="text-slate text-xs font-body hidden sm:inline">MinuteBox</span>
 			</a>
 
-			<div class="flex items-center gap-0.5">
+			<!-- Desktop nav -->
+			<div class="hidden md:flex items-center gap-0.5">
 				{#each navItems as nav}
 					<a
 						href={nav.href}
@@ -69,7 +78,7 @@
 								$currentUser.role === 'admin' ? 'bg-yellow/20 text-yellow' : 'bg-white/10 text-crystal-pale'
 							}">{roleBadge}</span>
 						{/if}
-						<span class="text-[12px] text-silver font-body hidden sm:inline">{displayName}</span>
+						<span class="text-[12px] text-silver font-body">{displayName}</span>
 						{#if $currentUser.role === 'admin'}
 							<button
 								onclick={() => previewAsManager.update((v) => !v)}
@@ -84,6 +93,75 @@
 					</div>
 				{/if}
 			</div>
+
+			<!-- Mobile hamburger -->
+			<button
+				class="md:hidden text-silver hover:text-white transition-colors p-1"
+				onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
+				aria-label="Toggle menu"
+			>
+				{#if mobileMenuOpen}
+					<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				{:else}
+					<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+					</svg>
+				{/if}
+			</button>
 		</div>
 	</div>
+
+	<!-- Mobile menu -->
+	{#if mobileMenuOpen}
+		<div class="md:hidden border-t border-graphite-deep bg-graphite">
+			<div class="px-4 py-3 space-y-1">
+				{#each navItems as nav}
+					<a
+						href={nav.href}
+						class="block px-3 py-2.5 rounded-lg text-[14px] font-medium font-body transition-all
+							{nav.match(page.url.pathname)
+								? 'bg-white/10 text-white'
+								: 'text-silver hover:bg-white/5'}"
+					>
+						{nav.label}
+					</a>
+				{/each}
+
+				<div class="border-t border-graphite-deep my-2"></div>
+
+				<a
+					href={accountManager.ticketManagerUrl}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="block px-3 py-2.5 rounded-lg text-[14px] font-medium font-body text-yellow hover:bg-yellow/10 transition-all"
+				>
+					Ticketmaster &nearr;
+				</a>
+
+				{#if $userLoaded && $currentUser}
+					<div class="border-t border-graphite-deep my-2"></div>
+					<div class="px-3 py-2 flex items-center gap-2">
+						{#if roleBadge}
+							<span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded {
+								$currentUser.role === 'admin' ? 'bg-yellow/20 text-yellow' : 'bg-white/10 text-crystal-pale'
+							}">{roleBadge}</span>
+						{/if}
+						<span class="text-[13px] text-silver font-body">{$currentUser.email}</span>
+					</div>
+					{#if $currentUser.role === 'admin'}
+						<button
+							onclick={() => previewAsManager.update((v) => !v)}
+							class="block w-full text-left px-3 py-2.5 rounded-lg text-[14px] font-medium font-body transition-all {
+								$previewAsManager ? 'text-pending bg-pending/10' : 'text-silver hover:bg-white/5'
+							}"
+						>
+							{$previewAsManager ? 'Exit Manager Preview' : 'Preview as Manager'}
+						</button>
+					{/if}
+				{/if}
+			</div>
+		</div>
+	{/if}
 </nav>
