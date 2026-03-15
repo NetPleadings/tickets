@@ -3,13 +3,17 @@
 	import Nav from '$lib/components/Nav.svelte';
 	import { loadAllocations } from '$lib/stores/allocations';
 	import { loadGuests } from '$lib/stores/guests';
+	import { loadCurrentUser } from '$lib/stores/user';
+	import { loadRequests } from '$lib/stores/requests';
 	import { onMount } from 'svelte';
 
 	let { children } = $props();
 
 	onMount(() => {
+		loadCurrentUser();
 		loadAllocations();
 		loadGuests();
+		loadRequests();
 	});
 </script>
 

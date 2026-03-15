@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Event, Allocation } from '$lib/types';
-	import { getMonthDays, getDayOfMonth, isToday, isUpcoming, formatMonthYear, buildEventsByDate, buildAllocsByEvent, countStatuses, seatDotColor } from '$lib/utils';
+	import { getMonthDays, getDayOfMonth, isToday, isUpcoming, formatMonthYear, buildEventsByDate, buildAllocsByEvent, countStatuses, seatDotColor, isSoldOut } from '$lib/utils';
 	import { teamAbbrevs } from '$lib/data/schedule';
 
 	interface Props {
@@ -65,12 +65,15 @@
 				{#each dayEvents as ev}
 					{@const allocs = allocsByEvent.get(ev.id) ?? []}
 					{@const counts = countStatuses(allocs)}
+					{@const soldOut = isSoldOut(counts, ev.totalSeats)}
 					<a
 						href="/game/{ev.id}"
 						class="block rounded-md px-1.5 py-1 mb-0.5 text-[11px] leading-tight transition-all hover:scale-[1.02] hover:shadow-sm
 							{ev.isMarquee
 								? 'bg-jays-navy text-white hover:bg-jays-blue'
-								: 'bg-jays-light text-jays-navy hover:bg-jays-blue/20'}
+								: soldOut
+									? 'bg-confirmed/20 text-confirmed hover:bg-confirmed/30'
+									: 'bg-jays-light text-jays-navy hover:bg-jays-blue/20'}
 							{past ? 'opacity-50' : ''}"
 					>
 						<div class="font-semibold truncate">

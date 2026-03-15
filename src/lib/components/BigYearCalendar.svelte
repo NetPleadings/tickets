@@ -2,7 +2,7 @@
 	import type { Event, Allocation } from '$lib/types';
 	import { teamAbbrevs } from '$lib/data/schedule';
 	import { promotions } from '$lib/data/promotions';
-	import { toDateStr, todayDateStr, isUpcoming, buildEventsByDate, buildAllocsByEvent, countStatuses, seatDotColor } from '$lib/utils';
+	import { toDateStr, todayDateStr, isUpcoming, buildEventsByDate, buildAllocsByEvent, countStatuses, seatDotColor, isSoldOut } from '$lib/utils';
 
 	interface Props {
 		events: Event[];
@@ -86,6 +86,7 @@
 			{@const isTodayCell = cell.dateStr === todayStr}
 			{@const allocs = event ? (allocsByEvent.get(event.id) ?? []) : []}
 			{@const counts = countStatuses(allocs)}
+			{@const soldOut = event ? isSoldOut(counts, event.totalSeats) : false}
 			{@const past = !isUpcoming(cell.dateStr)}
 			{@const promos = promotions[cell.dateStr] ?? []}
 
@@ -93,7 +94,7 @@
 				<a
 					href="/game/{event.id}"
 					class="big-year-cell group
-						{event.isMarquee ? 'game-marquee' : 'game-regular'}
+						{event.isMarquee ? 'game-marquee' : soldOut ? 'game-soldout' : 'game-regular'}
 						{past ? 'opacity-40' : ''}
 						{isTodayCell ? 'today-ring' : ''}"
 					title="vs {event.opponent} · {event.time}{counts.confirmed > 0 ? ` · ${counts.confirmed}/4 seats` : ''}{promos.length > 0 ? ` · ${promos.map(p => p.name).join(', ')}` : ''}"
@@ -233,6 +234,33 @@
 		height: 3.5px;
 		border-radius: 50%;
 		flex-shrink: 0;
+	}
+
+	.game-soldout {
+		background: var(--color-confirmed);
+		border-left: 2px solid color-mix(in srgb, var(--color-confirmed) 70%, black);
+	}
+
+	.game-soldout .day-weekday {
+		color: white;
+		opacity: 0.7;
+	}
+
+	.game-soldout .day-number {
+		color: white;
+	}
+
+	.game-soldout .day-opponent {
+		color: white;
+	}
+
+	.game-soldout:hover {
+		background: color-mix(in srgb, var(--color-confirmed) 80%, black);
+	}
+
+	.game-soldout .month-badge {
+		background: var(--color-yellow);
+		color: var(--color-graphite);
 	}
 
 	.game-regular {

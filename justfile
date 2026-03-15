@@ -2,6 +2,25 @@
 dev:
     bunx --bun vite dev
 
+# Create BigQuery dataset and tables in minutebox-marketing
+setup-bq:
+    bq --project_id=minutebox-marketing mk --dataset tickets
+    bq --project_id=minutebox-marketing mk --table tickets.allocations \
+        id:STRING,event_id:STRING,seat_id:STRING,assignee:STRING,assignee_email:STRING,status:STRING,assigned_by:STRING,assigned_at:TIMESTAMP,notes:STRING,is_guest:BOOLEAN,guest_company:STRING
+    bq --project_id=minutebox-marketing mk --table tickets.guests \
+        id:STRING,name:STRING,company:STRING,email:STRING,notes:STRING,created_at:TIMESTAMP
+    gcloud projects add-iam-policy-binding minutebox-marketing \
+        --member="serviceAccount:tickets-runtime@minutebox-marketing.iam.gserviceaccount.com" \
+        --role="roles/bigquery.dataEditor" --quiet
+    gcloud projects add-iam-policy-binding minutebox-marketing \
+        --member="serviceAccount:tickets-runtime@minutebox-marketing.iam.gserviceaccount.com" \
+        --role="roles/bigquery.jobUser" --quiet
+
+# Migrate local allocations.json into BigQuery
+migrate:
+    bun scripts/migrate.ts
+    bq load --source_format=NEWLINE_DELIMITED_JSON --project_id=minutebox-marketing tickets.allocations /tmp/allocations.ndjson
+
 # Build and deploy to Cloud Run
 deploy:
     bun i

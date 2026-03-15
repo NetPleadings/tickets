@@ -1,25 +1,64 @@
 <script lang="ts">
 	import { events, seats } from '$lib/data/schedule';
-	import { allocations } from '$lib/stores/allocations';
+	import { allocations, allocationsLoaded } from '$lib/stores/allocations';
 	import { promotions } from '$lib/data/promotions';
-	import { isUpcoming } from '$lib/utils';
+	import { isUpcoming, buildAllocsByEvent, countStatuses, isSoldOut } from '$lib/utils';
 	import CalendarView from '$lib/components/CalendarView.svelte';
 	import ListView from '$lib/components/ListView.svelte';
 	import YearCalendar from '$lib/components/YearCalendar.svelte';
 	import BigYearCalendar from '$lib/components/BigYearCalendar.svelte';
 	import WallCalendar from '$lib/components/WallCalendar.svelte';
 	import CompactListView from '$lib/components/CompactListView.svelte';
+	import TextListView from '$lib/components/TextListView.svelte';
+	import { onMount } from 'svelte';
+
+	// Restore persisted view state from sessionStorage
+	const SS_KEY = 'tickets-view-state';
+	function loadViewState() {
+		try {
+			const raw = sessionStorage.getItem(SS_KEY);
+			if (!raw) {
+				// Default to list view on mobile (< 768px)
+				if (window.innerWidth < 768) view = 'list';
+				return;
+			}
+			const s = JSON.parse(raw);
+			if (s.view) view = s.view;
+			if (s.bigYearMode) bigYearMode = s.bigYearMode;
+			if (s.listMode) listMode = s.listMode;
+			if (s.showPast !== undefined) showPast = s.showPast;
+			if (s.filter) filter = s.filter;
+			if (s.calMonth !== undefined) calMonth = s.calMonth;
+			if (s.calYear !== undefined) calYear = s.calYear;
+		} catch { /* ignore */ }
+	}
+	function saveViewState() {
+		try {
+			sessionStorage.setItem(SS_KEY, JSON.stringify({ view, bigYearMode, listMode, showPast, filter, calMonth, calYear }));
+		} catch { /* ignore */ }
+	}
 
 	let view = $state<'big-year' | 'year' | 'month' | 'list'>('big-year');
 	let bigYearMode = $state<'timeline' | 'wall'>('timeline');
-	let listMode = $state<'cards' | 'table'>('cards');
+	let listMode = $state<'cards' | 'table' | 'text'>('cards');
 	let showPast = $state(false);
-	let filter = $state<'all' | 'marquee' | 'promo'>('all');
+	let filter = $state<'all' | 'confirmed' | 'soldout' | 'pending' | 'available' | 'restricted' | 'marquee' | 'promo'>('all');
 
 	// Calendar navigation
 	const now = new Date();
 	let calMonth = $state(now.getMonth());
 	let calYear = $state(now.getFullYear());
+
+	onMount(() => {
+		loadViewState();
+	});
+
+	// Persist on every change
+	$effect(() => {
+		// Touch all reactive values to track them
+		view; bigYearMode; listMode; showPast; filter; calMonth; calYear;
+		saveViewState();
+	});
 
 	function prevMonth() {
 		if (calMonth === 0) { calMonth = 11; calYear--; }
@@ -30,11 +69,22 @@
 		else calMonth++;
 	}
 
+	const allocsByEvent = $derived(buildAllocsByEvent($allocations));
+
 	const filteredEvents = $derived(
 		events.filter((e) => {
 			if (!showPast && !isUpcoming(e.date)) return false;
 			if (filter === 'marquee' && !e.isMarquee) return false;
 			if (filter === 'promo' && !(promotions[e.date]?.length > 0)) return false;
+			if (filter === 'confirmed' || filter === 'soldout' || filter === 'pending' || filter === 'available' || filter === 'restricted') {
+				const allocs = allocsByEvent.get(e.id) ?? [];
+				const counts = countStatuses(allocs);
+				if (filter === 'confirmed') return counts.confirmed > 0;
+				if (filter === 'soldout') return isSoldOut(counts, e.totalSeats);
+				if (filter === 'pending') return counts.pending > 0;
+				if (filter === 'restricted') return counts.restricted > 0;
+				if (filter === 'available') return (e.totalSeats - counts.confirmed - counts.pending - counts.restricted) > 0;
+			}
 			return true;
 		})
 	);
@@ -46,6 +96,7 @@
 	const confirmedCount = $derived(upcomingAllocs.filter((a) => a.status === 'confirmed').length);
 	const pendingCount = $derived(upcomingAllocs.filter((a) => a.status === 'pending').length);
 	const restrictedCount = $derived(upcomingAllocs.filter((a) => a.status === 'restricted').length);
+	const restrictedGames = $derived(new Set(upcomingAllocs.filter((a) => a.status === 'restricted').map((a) => a.eventId)).size);
 	const availableCount = $derived(totalSeats - confirmedCount - pendingCount - restrictedCount);
 
 	const nextGame = $derived(upcoming[0]);
@@ -53,6 +104,12 @@
 	const nextGameAvailable = $derived(nextGame ? nextGame.totalSeats - nextGameAllocs.length : 0);
 </script>
 
+{#if !$allocationsLoaded}
+	<div class="flex flex-col items-center justify-center py-20 gap-4">
+		<div class="w-8 h-8 border-2 border-yellow border-t-transparent rounded-full animate-spin"></div>
+		<p class="text-sm text-slate font-body">Loading schedule...</p>
+	</div>
+{:else}
 <div class="space-y-5 animate-in">
 	<!-- Hero stats strip -->
 	<div class="bg-graphite rounded-xl p-5 text-white relative overflow-hidden">
@@ -72,7 +129,7 @@
 				</a>
 			</div>
 
-			<div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+			<div class="grid grid-cols-2 sm:grid-cols-5 gap-4">
 				<div>
 					<div class="text-[10px] uppercase tracking-wider text-silver font-body">Remaining Games</div>
 					<div class="text-2xl font-display font-bold text-white">{upcoming.length}</div>
@@ -88,6 +145,10 @@
 				<div>
 					<div class="text-[10px] uppercase tracking-wider text-silver font-body">Pending</div>
 					<div class="text-2xl font-display font-bold text-pending">{pendingCount}</div>
+				</div>
+				<div>
+					<div class="text-[10px] uppercase tracking-wider text-silver font-body">Blocked</div>
+					<div class="text-2xl font-display font-bold text-white/40">{restrictedGames}<span class="text-sm font-body text-silver ml-1">games</span> <span class="text-base">·</span> {restrictedCount}<span class="text-sm font-body text-silver ml-1">seats</span></div>
 				</div>
 			</div>
 
@@ -140,25 +201,31 @@
 		</label>
 	</div>
 
-	<!-- Legend / Filters -->
-	<div class="flex items-center gap-3 text-[11px] font-body text-slate px-1">
-		<span class="flex items-center gap-1.5">
-			<span class="w-2 h-2 rounded-full bg-confirmed"></span> Confirmed
-		</span>
-		<span class="flex items-center gap-1.5">
-			<span class="w-2 h-2 rounded-full bg-pending"></span> Pending
-		</span>
-		<span class="flex items-center gap-1.5">
-			<span class="w-2 h-2 rounded-full bg-crystal-pale"></span> Available
-		</span>
-		<span class="flex items-center gap-1.5">
-			<span class="w-2 h-2 rounded-full bg-graphite/40"></span> Restricted
-		</span>
+	<!-- Filters -->
+	<div class="flex flex-wrap items-center gap-1.5 text-[11px] font-body text-slate px-1">
+		{#each [
+			{ key: 'confirmed', label: 'Confirmed', dot: 'w-2 h-2 rounded-full bg-confirmed', active: 'bg-confirmed/15 text-confirmed' },
+			{ key: 'soldout', label: 'Sold Out', dot: 'w-3 h-2 rounded-sm bg-confirmed', active: 'bg-confirmed/15 text-confirmed' },
+			{ key: 'pending', label: 'Pending', dot: 'w-2 h-2 rounded-full bg-pending', active: 'bg-pending/15 text-pending' },
+			{ key: 'available', label: 'Available', dot: 'w-2 h-2 rounded-full bg-crystal-pale border border-crystal-pale', active: 'bg-crystal text-graphite' },
+			{ key: 'restricted', label: 'Restricted', dot: 'w-2 h-2 rounded-full bg-graphite/40', active: 'bg-graphite/10 text-graphite' },
+		] as f}
+			<button
+				class="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all cursor-pointer
+					{filter === f.key ? f.active + ' shadow-sm font-semibold' : 'hover:bg-crystal'}"
+				onclick={() => { filter = filter === f.key ? 'all' : f.key; }}
+			>
+				<span class="{f.dot}"></span> {f.label}
+				{#if filter === f.key}
+					<span class="text-[10px] opacity-60">({filteredEvents.length})</span>
+				{/if}
+			</button>
+		{/each}
 		<span class="text-crystal-pale">|</span>
 		<button
 			class="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all cursor-pointer
 				{filter === 'marquee' ? 'bg-jays-navy text-white shadow-sm' : 'hover:bg-crystal'}"
-			onclick={() => { filter = filter === 'marquee' ? 'all' : 'marquee'; if (filter !== 'all') view = 'list'; }}
+			onclick={() => { filter = filter === 'marquee' ? 'all' : 'marquee'; }}
 		>
 			<span class="inline-block px-1 py-0.5 rounded-sm bg-jays-navy text-white text-[9px] font-bold {filter === 'marquee' ? 'bg-white/20' : ''}">M</span> Marquee
 			{#if filter === 'marquee'}
@@ -168,7 +235,7 @@
 		<button
 			class="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all cursor-pointer
 				{filter === 'promo' ? 'bg-yellow text-graphite shadow-sm' : 'hover:bg-crystal'}"
-			onclick={() => { filter = filter === 'promo' ? 'all' : 'promo'; if (filter !== 'all') view = 'list'; }}
+			onclick={() => { filter = filter === 'promo' ? 'all' : 'promo'; }}
 		>
 			<span class="w-2 h-2 rounded-full {filter === 'promo' ? 'bg-graphite/30' : 'bg-yellow'}"></span> Promo Night
 			{#if filter === 'promo'}
@@ -218,12 +285,19 @@
 					class="px-2.5 py-1 transition-all {listMode === 'table' ? 'bg-graphite text-white' : 'bg-white text-slate hover:bg-crystal'}"
 					onclick={() => (listMode = 'table')}
 				>Table</button>
+				<button
+					class="px-2.5 py-1 transition-all {listMode === 'text' ? 'bg-graphite text-white' : 'bg-white text-slate hover:bg-crystal'}"
+					onclick={() => (listMode = 'text')}
+				>Text</button>
 			</div>
 		</div>
 		{#if listMode === 'cards'}
 			<ListView events={filteredEvents} allocations={$allocations} />
-		{:else}
+		{:else if listMode === 'table'}
 			<CompactListView events={filteredEvents} allocations={$allocations} />
+		{:else}
+			<TextListView events={filteredEvents} allocations={$allocations} />
 		{/if}
 	{/if}
 </div>
+{/if}

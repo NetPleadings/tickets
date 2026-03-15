@@ -2,7 +2,7 @@
 	import type { Event, Allocation } from '$lib/types';
 	import { teamAbbrevs } from '$lib/data/schedule';
 	import { promotions } from '$lib/data/promotions';
-	import { toDateStr, todayDateStr, isUpcoming, buildEventsByDate, buildAllocsByEvent, countStatuses } from '$lib/utils';
+	import { toDateStr, todayDateStr, isUpcoming, buildEventsByDate, buildAllocsByEvent, countStatuses, isSoldOut } from '$lib/utils';
 
 	interface Props {
 		events: Event[];
@@ -66,8 +66,7 @@
 					{@const isTodayCell = day.dateStr === todayStr}
 					{@const allocs = event ? (allocsByEvent.get(event.id) ?? []) : []}
 					{@const counts = countStatuses(allocs)}
-					{@const seatsFull = event ? counts.confirmed >= event.totalSeats : false}
-					{@const allRestricted = event ? counts.restricted >= event.totalSeats : false}
+					{@const soldOut = event ? isSoldOut(counts, event.totalSeats) : false}
 					{@const past = day.inMonth && !isUpcoming(day.dateStr)}
 					{@const promos = day.dateStr ? (promotions[day.dateStr] ?? []) : []}
 
@@ -77,9 +76,7 @@
 							class="relative aspect-square flex flex-col items-center justify-center rounded-[3px] transition-all text-[9px] leading-none
 								{event.isMarquee
 									? 'bg-jays-navy text-white hover:bg-jays-blue'
-									: allRestricted
-										? 'bg-graphite/10 text-graphite/50 hover:bg-graphite/15'
-										: seatsFull
+									: soldOut
 											? 'bg-confirmed/15 text-confirmed hover:bg-confirmed/25'
 											: 'bg-jays-light text-jays-navy hover:bg-jays-blue/20'}
 								{past ? 'opacity-40' : ''}

@@ -16,7 +16,6 @@ export async function loadAllocations() {
 		const data = await res.json();
 		if (data.ok) {
 			allocations.set(data.allocations);
-			// Set nextId past any existing
 			for (const a of data.allocations) {
 				const num = parseInt(a.id.replace('alloc-', ''), 10);
 				if (num >= nextId) nextId = num + 1;
@@ -24,19 +23,6 @@ export async function loadAllocations() {
 		}
 	} catch { /* ignore */ }
 	allocationsLoaded.set(true);
-}
-
-// Persist to server
-async function persist() {
-	if (!isBrowser) return;
-	const current = get(allocations);
-	try {
-		await fetch('/api/allocations', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ allocations: current }),
-		});
-	} catch { /* ignore */ }
 }
 
 export function assignSeat(params: {
@@ -62,7 +48,13 @@ export function assignSeat(params: {
 	};
 
 	allocations.update((current) => [...current, alloc]);
-	persist();
+
+	fetch('/api/allocations', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ action: 'assign', allocation: alloc }),
+	}).catch(() => {});
+
 	return alloc;
 }
 
@@ -70,19 +62,31 @@ export function confirmSeat(allocationId: string) {
 	allocations.update((current) =>
 		current.map((a) => a.id === allocationId ? { ...a, status: 'confirmed' as const } : a)
 	);
-	persist();
+	fetch('/api/allocations', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ action: 'updateStatus', id: allocationId, status: 'confirmed' }),
+	}).catch(() => {});
 }
 
 export function declineSeat(allocationId: string) {
 	allocations.update((current) =>
 		current.map((a) => a.id === allocationId ? { ...a, status: 'declined' as const } : a)
 	);
-	persist();
+	fetch('/api/allocations', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ action: 'updateStatus', id: allocationId, status: 'declined' }),
+	}).catch(() => {});
 }
 
 export function unassignSeat(allocationId: string) {
 	allocations.update((current) => current.filter((a) => a.id !== allocationId));
-	persist();
+	fetch('/api/allocations', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ action: 'unassign', id: allocationId }),
+	}).catch(() => {});
 }
 
 export function getAllocsForEvent(eventId: string): Allocation[] {
@@ -94,7 +98,6 @@ export function getFrequentAssignees(): { name: string; email: string; count: nu
 	const counts = new Map<string, { name: string; email: string; count: number; isGuest: boolean; guestCompany?: string }>();
 
 	for (const a of allocs) {
-		// Use email as key for team members, name for guests
 		const key = a.isGuest ? `guest:${a.assignee.toLowerCase()}` : (a.assigneeEmail ?? a.assignee);
 		const existing = counts.get(key);
 		if (existing) {

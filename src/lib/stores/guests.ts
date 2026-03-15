@@ -24,18 +24,6 @@ export async function loadGuests() {
 	guestsLoaded.set(true);
 }
 
-async function persist() {
-	if (!isBrowser) return;
-	const current = get(guests);
-	try {
-		await fetch('/api/guests', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ guests: current }),
-		});
-	} catch { /* ignore */ }
-}
-
 export function addGuest(params: { name: string; company?: string; email?: string; notes?: string }): Guest {
 	const guest: Guest = {
 		id: `guest-${nextId++}`,
@@ -46,7 +34,13 @@ export function addGuest(params: { name: string; company?: string; email?: strin
 		createdAt: new Date().toISOString(),
 	};
 	guests.update((current) => [...current, guest]);
-	persist();
+
+	fetch('/api/guests', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ action: 'add', guest }),
+	}).catch(() => {});
+
 	return guest;
 }
 
@@ -57,12 +51,15 @@ export function findGuestByName(name: string): Guest | undefined {
 export function getOrCreateGuest(params: { name: string; company?: string; email?: string }): Guest {
 	const existing = findGuestByName(params.name);
 	if (existing) {
-		// Update company if provided and different
 		if (params.company && params.company !== existing.company) {
 			guests.update((current) =>
 				current.map((g) => g.id === existing.id ? { ...g, company: params.company } : g)
 			);
-			persist();
+			fetch('/api/guests', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ action: 'update', id: existing.id, fields: { company: params.company } }),
+			}).catch(() => {});
 			return { ...existing, company: params.company };
 		}
 		return existing;
