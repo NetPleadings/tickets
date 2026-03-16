@@ -90,17 +90,57 @@ export async function POST({ request, locals }) {
 			}
 			await updateRequestStatus(body.id, 'approved', locals.user.email);
 
-			// Auto-create allocations if event + seat info provided
+			// Auto-create allocations for requester + companions on available seats
 			if (body.eventId && body.requesterEmail && body.requesterName) {
+				const { loadAllocations: loadAllocs } = await import('$lib/server/bigquery.js');
+				const existing = await loadAllocs();
+				const eventAllocs = existing.filter((a) => a.eventId === body.eventId);
 				const eventSeats = seats.filter((s) => s.eventId === body.eventId);
-				const seatCount = body.seatCount || 1;
-				let assigned = 0;
-				for (const seat of eventSeats) {
-					if (assigned >= seatCount) break;
-					// We'll let the admin manually assign specific seats after approval
-					// For now just mark the request as approved
-					assigned++;
+				const availableSeats = eventSeats.filter(
+					(s) => !eventAllocs.some((a) => a.seatId === s.id)
+				);
+
+				// Load the full request to get companions
+				const allRequests = await loadRequests();
+				const req = allRequests.find((r) => r.id === body.id);
+
+				// Build list of people to assign: requester + companions
+				const toAssign: { name: string; email: string; isGuest: boolean; company?: string }[] = [
+					{ name: body.requesterName, email: body.requesterEmail, isGuest: false },
+				];
+				if (req?.companions) {
+					for (const c of req.companions) {
+						toAssign.push({
+							name: c.name,
+							email: c.email || '',
+							isGuest: c.type === 'guest',
+							company: c.company,
+						});
+					}
 				}
+
+				const seatCount = Math.min(toAssign.length, availableSeats.length);
+				const newAllocations = [];
+				for (let i = 0; i < seatCount; i++) {
+					const person = toAssign[i]!;
+					const seat = availableSeats[i]!;
+					const alloc = {
+						id: `alloc-${Date.now() + i}`,
+						eventId: body.eventId,
+						seatId: seat.id,
+						assignee: person.name,
+						assigneeEmail: person.email,
+						status: 'pending' as const,
+						assignedBy: locals.user.email,
+						assignedAt: new Date().toISOString(),
+						notes: `From request ${body.id}`,
+						isGuest: person.isGuest,
+						guestCompany: person.company ?? '',
+					};
+					await insertAllocation(alloc);
+					newAllocations.push(alloc);
+				}
+				return json({ ok: true, allocations: newAllocations, seatsAssigned: seatCount, seatsRequested: toAssign.length });
 			}
 			return json({ ok: true });
 		}

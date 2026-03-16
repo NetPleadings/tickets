@@ -271,6 +271,19 @@
 			{/if}
 		</div>
 
+		<!-- Data Browser -->
+		<a href="/admin/data" class="block bg-white rounded-xl border border-crystal-pale shadow-sm p-6 hover:border-yellow/50 transition-colors group">
+			<div class="flex items-center justify-between">
+				<div>
+					<h2 class="font-display font-semibold text-lg text-graphite group-hover:text-jays-blue transition-colors">Data Browser</h2>
+					<p class="text-sm text-slate font-body mt-1">View raw BigQuery rows, spot duplicate or orphaned allocations, and fix data issues.</p>
+				</div>
+				<svg class="w-5 h-5 text-silver group-hover:text-graphite transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+				</svg>
+			</div>
+		</a>
+
 		<!-- Role Legend -->
 		<div class="bg-crystal/20 rounded-xl p-5">
 			<h3 class="text-sm font-semibold font-body text-graphite mb-3">Role Reference</h3>
