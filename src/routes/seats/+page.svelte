@@ -115,6 +115,48 @@
 		</div>
 	</div>
 
+	<!-- Ticket Management -->
+	<div class="bg-jays-navy rounded-xl p-6 sm:p-8 text-white relative overflow-hidden">
+		<div class="absolute inset-0 opacity-[0.06]">
+			<div class="absolute -top-4 -right-4 text-[100px] font-display font-bold leading-none select-none">[ ]</div>
+		</div>
+		<div class="relative z-10">
+			<h2 class="font-display font-semibold text-lg mb-2">Ticket Management</h2>
+			<p class="text-white/70 font-body text-sm mb-5 max-w-2xl">
+				Manage your tickets directly through the Blue Jays Ticket Manager portal. You can transfer, exchange, donate, or sell your tickets for any upcoming game.
+			</p>
+			<div class="grid sm:grid-cols-2 gap-3 mb-6">
+				<div class="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/10">
+					<div class="font-body font-semibold text-white text-sm">Transfer</div>
+					<p class="text-[12px] text-white/60 font-body mt-0.5">Electronically send tickets to another fan via text or email</p>
+				</div>
+				<div class="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/10">
+					<div class="font-body font-semibold text-white text-sm">Exchange</div>
+					<p class="text-[12px] text-white/60 font-body mt-0.5">Trade in your tickets for an alternate date (up to 48 hours prior)</p>
+				</div>
+				<div class="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/10">
+					<div class="font-body font-semibold text-white text-sm">Donate</div>
+					<p class="text-[12px] text-white/60 font-body mt-0.5">Donate your tickets to Kids Up Front (up to 48 hours prior)</p>
+				</div>
+				<div class="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-3 border border-white/10">
+					<div class="font-body font-semibold text-white text-sm">Sell (up to 50%)</div>
+					<p class="text-[12px] text-white/60 font-body mt-0.5">List your tickets on SeatGeek, the official secondary market partner of MLB</p>
+				</div>
+			</div>
+			<a
+				href="https://am.ticketmaster.com/tbjrc/"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-yellow text-graphite font-body font-semibold text-sm hover:bg-yellow-bright transition-colors"
+			>
+				Open Ticket Manager
+				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+				</svg>
+			</a>
+		</div>
+	</div>
+
 	<!-- Quick Links -->
 	<div>
 		<h2 class="font-display font-semibold text-graphite text-lg mb-3">Quick Links</h2>
