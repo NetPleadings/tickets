@@ -71,6 +71,9 @@ export async function approveRequest(id: string, eventId: string, requesterEmail
 			requests.update((current) =>
 				current.map((r) => r.id === id ? { ...r, status: 'approved' as const } : r)
 			);
+			// Reload allocations since approve now auto-creates them
+			const { loadAllocations } = await import('$lib/stores/allocations');
+			await loadAllocations();
 		}
 		return data;
 	} catch {

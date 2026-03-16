@@ -80,13 +80,25 @@ export function declineSeat(allocationId: string) {
 	}).catch(() => {});
 }
 
-export function unassignSeat(allocationId: string) {
+export async function unassignSeat(allocationId: string): Promise<boolean> {
 	allocations.update((current) => current.filter((a) => a.id !== allocationId));
-	fetch('/api/allocations', {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ action: 'unassign', id: allocationId }),
-	}).catch(() => {});
+	try {
+		const res = await fetch('/api/allocations', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ action: 'unassign', id: allocationId }),
+		});
+		const data = await res.json();
+		if (!data.ok) {
+			// Re-fetch to restore correct state
+			await loadAllocations();
+			return false;
+		}
+		return true;
+	} catch {
+		await loadAllocations();
+		return false;
+	}
 }
 
 export function getAllocsForEvent(eventId: string): Allocation[] {
