@@ -59,3 +59,62 @@ export type EventWithAllocations = Event & {
 	seats: Seat[];
 	allocations: Allocation[];
 };
+
+// --- Ticket Banking & Exchange ---
+
+export interface BankInventoryItem {
+	id: string;
+	sourceEventId: string;
+	sourceGameDate: string;
+	ticketClass: string; // e.g. "Home Plate Terrace Club", "Lower Bowl", "Upper Deck"
+	section: string;
+	row: string;
+	seat: string;
+	quantity: number;
+	status: 'available' | 'partially_used' | 'used' | 'cancelled';
+	bankedBy: string;
+	bankedAt: string;
+	notes?: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface ExchangeRule {
+	id: string;
+	name: string;
+	fromTicketClass: string;
+	fromQuantity: number;
+	toTicketClass: string;
+	toQuantity: number;
+	active: boolean;
+	notes?: string;
+	createdBy: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export type ExchangeStatus = 'completed' | 'cancelled';
+
+export interface ExchangeTransaction {
+	id: string;
+	ruleId: string;
+	ruleName: string;
+	targetEventId: string;
+	targetGameDate: string;
+	fromTicketClass: string;
+	fromQuantity: number;
+	toTicketClass: string;
+	toQuantity: number;
+	status: ExchangeStatus;
+	performedBy: string;
+	notes?: string;
+	createdAt: string;
+}
+
+export interface ExchangeTransactionItem {
+	id: string;
+	transactionId: string;
+	bankInventoryId: string;
+	quantityConsumed: number;
+	createdAt: string;
+}

@@ -1,5 +1,5 @@
 import { BigQuery } from '@google-cloud/bigquery';
-import type { Allocation, Guest } from '$lib/types';
+import type { Allocation, Guest, BankInventoryItem, ExchangeRule, ExchangeTransaction, ExchangeTransactionItem } from '$lib/types';
 
 const bq = new BigQuery({ projectId: 'minutebox-marketing' });
 const dataset = bq.dataset('tickets');
@@ -238,5 +238,238 @@ function guestToRow(g: Guest): Record<string, unknown> {
 		email: g.email || '',
 		notes: g.notes || '',
 		created_at: g.createdAt,
+	};
+}
+
+// --- Ticket Bank Inventory ---
+
+export async function loadBankInventory(): Promise<BankInventoryItem[]> {
+	const [rows] = await bq.query({
+		query: 'SELECT * FROM `minutebox-marketing.tickets.ticket_bank_inventory` ORDER BY created_at DESC',
+	});
+	return rows.map(rowToBankItem);
+}
+
+export async function loadAvailableBankInventory(): Promise<BankInventoryItem[]> {
+	const [rows] = await bq.query({
+		query: "SELECT * FROM `minutebox-marketing.tickets.ticket_bank_inventory` WHERE status IN ('available', 'partially_used') ORDER BY created_at DESC",
+	});
+	return rows.map(rowToBankItem);
+}
+
+export async function insertBankItem(item: BankInventoryItem): Promise<void> {
+	await bq.query({
+		query: `INSERT INTO \`minutebox-marketing.tickets.ticket_bank_inventory\`
+			(id, source_event_id, source_game_date, ticket_class, section, row, seat, quantity, status, banked_by, banked_at, notes, created_at, updated_at)
+			VALUES (@id, @sourceEventId, @sourceGameDate, @ticketClass, @section, @row, @seat, @quantity, @status, @bankedBy, @bankedAt, @notes, @createdAt, @updatedAt)`,
+		params: {
+			id: item.id,
+			sourceEventId: item.sourceEventId,
+			sourceGameDate: item.sourceGameDate,
+			ticketClass: item.ticketClass,
+			section: item.section,
+			row: item.row,
+			seat: item.seat,
+			quantity: item.quantity,
+			status: item.status,
+			bankedBy: item.bankedBy,
+			bankedAt: bq.timestamp(item.bankedAt),
+			notes: item.notes || '',
+			createdAt: bq.timestamp(item.createdAt),
+			updatedAt: bq.timestamp(item.updatedAt),
+		},
+	});
+}
+
+export async function updateBankItemStatus(id: string, status: BankInventoryItem['status']): Promise<void> {
+	await bq.query({
+		query: 'UPDATE `minutebox-marketing.tickets.ticket_bank_inventory` SET status = @status, updated_at = CURRENT_TIMESTAMP() WHERE id = @id',
+		params: { id, status },
+	});
+}
+
+export async function updateBankItemQuantity(id: string, quantity: number, status: BankInventoryItem['status']): Promise<void> {
+	await bq.query({
+		query: 'UPDATE `minutebox-marketing.tickets.ticket_bank_inventory` SET quantity = @quantity, status = @status, updated_at = CURRENT_TIMESTAMP() WHERE id = @id',
+		params: { id, quantity, status },
+	});
+}
+
+function rowToBankItem(row: Record<string, unknown>): BankInventoryItem {
+	return {
+		id: row.id as string,
+		sourceEventId: row.source_event_id as string,
+		sourceGameDate: row.source_game_date as string,
+		ticketClass: row.ticket_class as string,
+		section: row.section as string,
+		row: row.row as string,
+		seat: row.seat as string,
+		quantity: Number(row.quantity) || 1,
+		status: row.status as BankInventoryItem['status'],
+		bankedBy: row.banked_by as string,
+		bankedAt: row.banked_at ? (row.banked_at as { value: string }).value ?? String(row.banked_at) : '',
+		notes: (row.notes as string) || undefined,
+		createdAt: row.created_at ? (row.created_at as { value: string }).value ?? String(row.created_at) : '',
+		updatedAt: row.updated_at ? (row.updated_at as { value: string }).value ?? String(row.updated_at) : '',
+	};
+}
+
+// --- Exchange Rules ---
+
+export async function loadExchangeRules(): Promise<ExchangeRule[]> {
+	const [rows] = await bq.query({
+		query: 'SELECT * FROM `minutebox-marketing.tickets.ticket_exchange_rules` ORDER BY created_at DESC',
+	});
+	return rows.map(rowToExchangeRule);
+}
+
+export async function loadActiveExchangeRules(): Promise<ExchangeRule[]> {
+	const [rows] = await bq.query({
+		query: 'SELECT * FROM `minutebox-marketing.tickets.ticket_exchange_rules` WHERE active = TRUE ORDER BY name',
+	});
+	return rows.map(rowToExchangeRule);
+}
+
+export async function insertExchangeRule(rule: ExchangeRule): Promise<void> {
+	await bq.query({
+		query: `INSERT INTO \`minutebox-marketing.tickets.ticket_exchange_rules\`
+			(id, name, from_ticket_class, from_quantity, to_ticket_class, to_quantity, active, notes, created_by, created_at, updated_at)
+			VALUES (@id, @name, @fromTicketClass, @fromQuantity, @toTicketClass, @toQuantity, @active, @notes, @createdBy, @createdAt, @updatedAt)`,
+		params: {
+			id: rule.id,
+			name: rule.name,
+			fromTicketClass: rule.fromTicketClass,
+			fromQuantity: rule.fromQuantity,
+			toTicketClass: rule.toTicketClass,
+			toQuantity: rule.toQuantity,
+			active: rule.active,
+			notes: rule.notes || '',
+			createdBy: rule.createdBy,
+			createdAt: bq.timestamp(rule.createdAt),
+			updatedAt: bq.timestamp(rule.updatedAt),
+		},
+	});
+}
+
+export async function updateExchangeRule(id: string, fields: Partial<ExchangeRule>): Promise<void> {
+	const sets: string[] = [];
+	const params: Record<string, unknown> = { id };
+
+	if (fields.name !== undefined) { sets.push('name = @name'); params.name = fields.name; }
+	if (fields.fromTicketClass !== undefined) { sets.push('from_ticket_class = @fromTicketClass'); params.fromTicketClass = fields.fromTicketClass; }
+	if (fields.fromQuantity !== undefined) { sets.push('from_quantity = @fromQuantity'); params.fromQuantity = fields.fromQuantity; }
+	if (fields.toTicketClass !== undefined) { sets.push('to_ticket_class = @toTicketClass'); params.toTicketClass = fields.toTicketClass; }
+	if (fields.toQuantity !== undefined) { sets.push('to_quantity = @toQuantity'); params.toQuantity = fields.toQuantity; }
+	if (fields.active !== undefined) { sets.push('active = @active'); params.active = fields.active; }
+	if (fields.notes !== undefined) { sets.push('notes = @notes'); params.notes = fields.notes; }
+
+	if (sets.length === 0) return;
+
+	sets.push('updated_at = CURRENT_TIMESTAMP()');
+
+	await bq.query({
+		query: `UPDATE \`minutebox-marketing.tickets.ticket_exchange_rules\` SET ${sets.join(', ')} WHERE id = @id`,
+		params,
+	});
+}
+
+function rowToExchangeRule(row: Record<string, unknown>): ExchangeRule {
+	return {
+		id: row.id as string,
+		name: row.name as string,
+		fromTicketClass: row.from_ticket_class as string,
+		fromQuantity: Number(row.from_quantity) || 1,
+		toTicketClass: row.to_ticket_class as string,
+		toQuantity: Number(row.to_quantity) || 1,
+		active: row.active as boolean ?? true,
+		notes: (row.notes as string) || undefined,
+		createdBy: (row.created_by as string) || '',
+		createdAt: row.created_at ? (row.created_at as { value: string }).value ?? String(row.created_at) : '',
+		updatedAt: row.updated_at ? (row.updated_at as { value: string }).value ?? String(row.updated_at) : '',
+	};
+}
+
+// --- Exchange Transactions ---
+
+export async function loadExchangeTransactions(): Promise<ExchangeTransaction[]> {
+	const [rows] = await bq.query({
+		query: 'SELECT * FROM `minutebox-marketing.tickets.ticket_exchange_transactions` ORDER BY created_at DESC',
+	});
+	return rows.map(rowToExchangeTransaction);
+}
+
+export async function insertExchangeTransaction(tx: ExchangeTransaction): Promise<void> {
+	await bq.query({
+		query: `INSERT INTO \`minutebox-marketing.tickets.ticket_exchange_transactions\`
+			(id, rule_id, rule_name, target_event_id, target_game_date, from_ticket_class, from_quantity, to_ticket_class, to_quantity, status, performed_by, notes, created_at)
+			VALUES (@id, @ruleId, @ruleName, @targetEventId, @targetGameDate, @fromTicketClass, @fromQuantity, @toTicketClass, @toQuantity, @status, @performedBy, @notes, @createdAt)`,
+		params: {
+			id: tx.id,
+			ruleId: tx.ruleId,
+			ruleName: tx.ruleName,
+			targetEventId: tx.targetEventId,
+			targetGameDate: tx.targetGameDate,
+			fromTicketClass: tx.fromTicketClass,
+			fromQuantity: tx.fromQuantity,
+			toTicketClass: tx.toTicketClass,
+			toQuantity: tx.toQuantity,
+			status: tx.status,
+			performedBy: tx.performedBy,
+			notes: tx.notes || '',
+			createdAt: bq.timestamp(tx.createdAt),
+		},
+	});
+}
+
+// --- Exchange Transaction Items ---
+
+export async function loadExchangeTransactionItems(transactionId: string): Promise<ExchangeTransactionItem[]> {
+	const [rows] = await bq.query({
+		query: 'SELECT * FROM `minutebox-marketing.tickets.ticket_exchange_transaction_items` WHERE transaction_id = @transactionId ORDER BY created_at',
+		params: { transactionId },
+	});
+	return rows.map(rowToExchangeTransactionItem);
+}
+
+export async function insertExchangeTransactionItem(item: ExchangeTransactionItem): Promise<void> {
+	await bq.query({
+		query: `INSERT INTO \`minutebox-marketing.tickets.ticket_exchange_transaction_items\`
+			(id, transaction_id, bank_inventory_id, quantity_consumed, created_at)
+			VALUES (@id, @transactionId, @bankInventoryId, @quantityConsumed, @createdAt)`,
+		params: {
+			id: item.id,
+			transactionId: item.transactionId,
+			bankInventoryId: item.bankInventoryId,
+			quantityConsumed: item.quantityConsumed,
+			createdAt: bq.timestamp(item.createdAt),
+		},
+	});
+}
+
+function rowToExchangeTransaction(row: Record<string, unknown>): ExchangeTransaction {
+	return {
+		id: row.id as string,
+		ruleId: row.rule_id as string,
+		ruleName: row.rule_name as string,
+		targetEventId: row.target_event_id as string,
+		targetGameDate: row.target_game_date as string,
+		fromTicketClass: row.from_ticket_class as string,
+		fromQuantity: Number(row.from_quantity) || 1,
+		toTicketClass: row.to_ticket_class as string,
+		toQuantity: Number(row.to_quantity) || 1,
+		status: row.status as ExchangeTransaction['status'],
+		performedBy: row.performed_by as string,
+		notes: (row.notes as string) || undefined,
+		createdAt: row.created_at ? (row.created_at as { value: string }).value ?? String(row.created_at) : '',
+	};
+}
+
+function rowToExchangeTransactionItem(row: Record<string, unknown>): ExchangeTransactionItem {
+	return {
+		id: row.id as string,
+		transactionId: row.transaction_id as string,
+		bankInventoryId: row.bank_inventory_id as string,
+		quantityConsumed: Number(row.quantity_consumed) || 1,
+		createdAt: row.created_at ? (row.created_at as { value: string }).value ?? String(row.created_at) : '',
 	};
 }
