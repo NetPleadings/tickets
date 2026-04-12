@@ -5,6 +5,9 @@
 	import { loadGuests } from '$lib/stores/guests';
 	import { loadCurrentUser } from '$lib/stores/user';
 	import { loadRequests } from '$lib/stores/requests';
+	import { loadBankInventory } from '$lib/stores/banking';
+	import { loadExchangeRules } from '$lib/stores/exchange-rules';
+	import { loadExchangeTransactions } from '$lib/stores/exchanges';
 	import { onMount } from 'svelte';
 
 	let { children } = $props();
@@ -14,6 +17,9 @@
 		loadAllocations();
 		loadGuests();
 		loadRequests();
+		loadBankInventory();
+		loadExchangeRules();
+		loadExchangeTransactions();
 	});
 </script>
 

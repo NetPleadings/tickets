@@ -18,6 +18,7 @@
 		}
 		items.push({ href: '/seats', label: 'Our Seats', match: (p: string) => p.startsWith('/seats') });
 		if (effectiveRole === 'admin') {
+			items.push({ href: '/banking', label: 'Banking', match: (p: string) => p.startsWith('/banking') || p.startsWith('/exchanges') });
 			items.push({ href: '/admin', label: 'Admin', match: (p: string) => p.startsWith('/admin') });
 		}
 		return items;
