@@ -30,7 +30,8 @@ deploy:
         --region us-central1 \
         --project minutebox-marketing \
         --platform managed \
-        --service-account tickets-runtime@minutebox-marketing.iam.gserviceaccount.com
+        --service-account tickets-runtime@minutebox-marketing.iam.gserviceaccount.com \
+        --clear-base-image
 
 # Create the runtime service account in minutebox-marketing
 create-service-account:
