@@ -1,0 +1,15 @@
+FROM node:22-slim AS build
+WORKDIR /app
+COPY package.json bun.lock* package-lock.json* ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+FROM node:22-slim
+WORKDIR /app
+COPY --from=build /app/build build/
+COPY --from=build /app/node_modules node_modules/
+COPY package.json .
+ENV PORT=8080
+EXPOSE 8080
+CMD ["node", "build/index.js"]
