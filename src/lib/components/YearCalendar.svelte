@@ -76,9 +76,11 @@
 							class="relative aspect-square flex flex-col items-center justify-center rounded-[3px] transition-all text-[9px] leading-none
 								{event.isMarquee
 									? 'bg-jays-navy text-white hover:bg-jays-blue'
-									: soldOut
-											? 'bg-declined/15 text-declined hover:bg-declined/25'
-											: 'bg-jays-light text-jays-navy hover:bg-jays-blue/20'}
+									: counts.restricted > 0 && soldOut
+											? 'bg-graphite/15 text-graphite hover:bg-graphite/25'
+											: soldOut
+												? 'bg-declined/15 text-declined hover:bg-declined/25'
+												: 'bg-jays-light text-jays-navy hover:bg-jays-blue/20'}
 								{past ? 'opacity-40' : ''}
 								{isTodayCell ? 'ring-1 ring-yellow' : ''}"
 							title="vs {event.opponent} · {event.time}{counts.confirmed > 0 ? ` · ${counts.confirmed}/4 seats` : ''}{promos.length > 0 ? ` · ${promos.map(p => p.name).join(', ')}` : ''}"

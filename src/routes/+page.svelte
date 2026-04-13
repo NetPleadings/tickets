@@ -94,7 +94,7 @@
 				if (filter === 'soldout') return isSoldOut(counts, e.totalSeats);
 				if (filter === 'pending') return counts.pending > 0 || (pendingSeatsMap.get(e.id) ?? 0) > 0;
 				if (filter === 'restricted') return counts.restricted > 0;
-				if (filter === 'available') return (e.totalSeats - counts.confirmed - counts.pending - counts.restricted - (pendingSeatsMap.get(e.id) ?? 0)) > 0;
+				if (filter === 'available') return (e.totalSeats - counts.confirmed - counts.pending - (pendingSeatsMap.get(e.id) ?? 0)) > 0 || counts.restricted > 0;
 			}
 			return true;
 		})
@@ -272,7 +272,7 @@
 			{#if filter === 'confirmed'}Games with at least one confirmed attendee.
 			{:else if filter === 'soldout'}All 4 seats are assigned — no availability.
 			{:else if filter === 'pending'}Games with pending requests or invitations awaiting response.
-			{:else if filter === 'available'}Games with open seats ready to be requested.
+			{:else if filter === 'available'}Games with open seats ready to be requested. Restricted games are included — contact tickets@minutebox.com for availability.
 			{:else if filter === 'restricted'}Restricted games have been blocked for booking by admin but may still be available. Please contact tickets@minutebox.com for more information.
 			{:else if filter === 'marquee'}High-demand matchups — Yankees, Red Sox, Dodgers, Mets.
 			{:else if filter === 'promo'}Games with special Blue Jays promotional giveaways or events.

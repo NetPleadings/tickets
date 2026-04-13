@@ -75,7 +75,7 @@
 						<a
 							href="/game/{event.id}"
 							class="wall-cell wall-game
-								{event.isMarquee ? 'wall-marquee' : soldOut ? 'wall-soldout' : 'wall-regular'}
+								{event.isMarquee ? 'wall-marquee' : counts.restricted > 0 && soldOut ? 'wall-restricted' : soldOut ? 'wall-soldout' : 'wall-regular'}
 								{past ? 'opacity-40' : ''}
 								{isTodayCell ? 'wall-today' : ''}"
 							title="{weekdayShort[cell.weekday]} · vs {event.opponent} · {event.time}{promos.length > 0 ? ` · ${promos.map(p => p.name).join(', ')}` : ''}"
@@ -213,6 +213,21 @@
 
 	.wall-game {
 		text-decoration: none;
+	}
+
+	.wall-restricted {
+		background: var(--color-graphite);
+		border-left: 2px solid color-mix(in srgb, var(--color-graphite) 70%, black);
+		opacity: 0.6;
+	}
+
+	.wall-restricted .wall-dow {
+		color: white;
+	}
+
+	.wall-restricted:hover {
+		background: color-mix(in srgb, var(--color-graphite) 80%, black);
+		opacity: 0.8;
 	}
 
 	.wall-soldout {
