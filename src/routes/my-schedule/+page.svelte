@@ -109,6 +109,12 @@
 			<p class="text-sm text-slate font-body mt-1">Your upcoming Blue Jays schedule.</p>
 		</div>
 
+		<!-- Schedule disclaimer -->
+		<div class="bg-yellow-pale border border-yellow/40 rounded-lg px-4 py-2.5 flex items-start gap-2.5 text-[11px] font-body text-graphite">
+			<svg class="w-4 h-4 text-pending shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+			<span>Game dates and times may contain errors or omissions. Please always double-check with the <a href="https://www.mlb.com/bluejays/schedule" target="_blank" class="underline font-semibold hover:text-jays-blue">official Blue Jays schedule</a> before making plans.</span>
+		</div>
+
 		<!-- Quick stats -->
 		<div class="bg-graphite rounded-xl p-5 text-white">
 			<div class="grid grid-cols-2 sm:grid-cols-4 gap-4">

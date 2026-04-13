@@ -127,6 +127,12 @@
 	</div>
 {:else}
 <div class="space-y-5 animate-in">
+	<!-- Schedule disclaimer -->
+	<div class="bg-yellow-pale border border-yellow/40 rounded-lg px-4 py-2.5 flex items-start gap-2.5 text-[11px] font-body text-graphite">
+		<svg class="w-4 h-4 text-pending shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
+		<span>Game dates and times may contain errors or omissions. Please always double-check with the <a href="https://www.mlb.com/bluejays/schedule" target="_blank" class="underline font-semibold hover:text-jays-blue">official Blue Jays schedule</a> before making plans.</span>
+	</div>
+
 	<!-- Hero stats strip -->
 	<div class="bg-graphite rounded-xl p-5 text-white relative overflow-hidden">
 		<div class="absolute inset-0 opacity-[0.04] text-yellow font-display text-[120px] leading-none font-bold select-none pointer-events-none overflow-hidden">
@@ -218,47 +224,61 @@
 	</div>
 
 	<!-- Filters -->
+	<div class="text-[10px] font-semibold font-body text-silver uppercase tracking-widest px-1">Filters</div>
+	<div class="text-[10px] font-body text-silver px-1 mb-0.5">Click to filter games by status. Click again to clear.</div>
 	<div class="flex flex-wrap items-center gap-1.5 text-[11px] font-body text-slate px-1">
 		{#each [
-			{ key: 'confirmed', label: 'Confirmed', dot: 'w-2 h-2 rounded-full bg-confirmed', active: 'bg-confirmed/15 text-confirmed' },
-			{ key: 'soldout', label: 'Sold Out', dot: 'w-3 h-2 rounded-sm bg-declined', active: 'bg-declined/15 text-declined' },
-			{ key: 'pending', label: 'Pending', dot: 'w-2 h-2 rounded-full bg-pending', active: 'bg-pending/15 text-pending' },
-			{ key: 'available', label: 'Available', dot: 'w-2 h-2 rounded-full bg-crystal-pale border border-crystal-pale', active: 'bg-crystal text-graphite' },
-			{ key: 'restricted', label: 'Restricted', dot: 'w-2 h-2 rounded-full bg-graphite/40', active: 'bg-graphite/10 text-graphite' },
+			{ key: 'confirmed', label: 'Confirmed', dot: 'w-2 h-2 rounded-full bg-confirmed', activeDot: 'w-2 h-2 rounded-full bg-white/70', active: 'bg-confirmed text-white ring-2 ring-confirmed/40' },
+			{ key: 'soldout', label: 'Sold Out', dot: 'w-3 h-2 rounded-sm bg-declined', activeDot: 'w-3 h-2 rounded-sm bg-white/70', active: 'bg-declined text-white ring-2 ring-declined/40' },
+			{ key: 'pending', label: 'Pending', dot: 'w-2 h-2 rounded-full bg-pending', activeDot: 'w-2 h-2 rounded-full bg-white/70', active: 'bg-pending text-white ring-2 ring-pending/40' },
+			{ key: 'available', label: 'Available', dot: 'w-2 h-2 rounded-full bg-crystal-pale border border-crystal-pale', activeDot: 'w-2 h-2 rounded-full bg-graphite/30', active: 'bg-graphite text-white ring-2 ring-graphite/30' },
+			{ key: 'restricted', label: 'Restricted', dot: 'w-2 h-2 rounded-full bg-graphite/40', activeDot: 'w-2 h-2 rounded-full bg-white/70', active: 'bg-graphite/70 text-white ring-2 ring-graphite/30' },
 		] as f}
 			<button
-				class="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all cursor-pointer
-					{filter === f.key ? f.active + ' shadow-sm font-semibold' : 'hover:bg-crystal'}"
+				class="flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all cursor-pointer
+					{filter === f.key ? f.active + ' shadow-md font-semibold' : 'hover:bg-crystal'}"
 				onclick={() => { filter = filter === f.key ? 'all' : f.key; }}
 			>
-				<span class="{f.dot}"></span> {f.label}
+				<span class="{filter === f.key ? f.activeDot : f.dot}"></span> {f.label}
 				{#if filter === f.key}
-					<span class="text-[10px] opacity-60">({filteredEvents.length})</span>
+					<span class="text-[10px] text-white/80">({filteredEvents.length})</span>
 				{/if}
 			</button>
 		{/each}
 		<span class="text-crystal-pale">|</span>
 		<button
-			class="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all cursor-pointer
-				{filter === 'marquee' ? 'bg-jays-navy text-white shadow-sm' : 'hover:bg-crystal'}"
+			class="flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all cursor-pointer
+				{filter === 'marquee' ? 'bg-jays-navy text-white shadow-md ring-2 ring-jays-navy/40 font-semibold' : 'hover:bg-crystal'}"
 			onclick={() => { filter = filter === 'marquee' ? 'all' : 'marquee'; }}
 		>
 			<span class="inline-block px-1 py-0.5 rounded-sm bg-jays-navy text-white text-[9px] font-bold {filter === 'marquee' ? 'bg-white/20' : ''}">M</span> Marquee
 			{#if filter === 'marquee'}
-				<span class="text-[10px] font-semibold text-white/70">({filteredEvents.length})</span>
+				<span class="text-[10px] text-white/80">({filteredEvents.length})</span>
 			{/if}
 		</button>
 		<button
-			class="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all cursor-pointer
-				{filter === 'promo' ? 'bg-yellow text-graphite shadow-sm' : 'hover:bg-crystal'}"
+			class="flex items-center gap-1.5 px-2.5 py-1 rounded-full transition-all cursor-pointer
+				{filter === 'promo' ? 'bg-yellow text-graphite shadow-md ring-2 ring-yellow/50 font-semibold' : 'hover:bg-crystal'}"
 			onclick={() => { filter = filter === 'promo' ? 'all' : 'promo'; }}
 		>
 			<span class="w-2 h-2 rounded-full {filter === 'promo' ? 'bg-graphite/30' : 'bg-yellow'}"></span> Promo Night
 			{#if filter === 'promo'}
-				<span class="text-[10px] font-semibold text-graphite/60">({filteredEvents.length})</span>
+				<span class="text-[10px] text-graphite/70">({filteredEvents.length})</span>
 			{/if}
 		</button>
 	</div>
+	{#if filter !== 'all'}
+		<div class="text-[10px] font-body text-slate/70 px-1 mt-1">
+			{#if filter === 'confirmed'}Games with at least one confirmed attendee.
+			{:else if filter === 'soldout'}All 4 seats are assigned — no availability.
+			{:else if filter === 'pending'}Games with pending requests or invitations awaiting response.
+			{:else if filter === 'available'}Games with open seats ready to be requested.
+			{:else if filter === 'restricted'}Restricted games have been blocked for booking by admin but may still be available. Please contact tickets@minutebox.com for more information.
+			{:else if filter === 'marquee'}High-demand matchups — Yankees, Red Sox, Dodgers, Mets.
+			{:else if filter === 'promo'}Games with special Blue Jays promotional giveaways or events.
+			{/if}
+		</div>
+	{/if}
 
 	<!-- Views -->
 	{#if view === 'big-year'}
