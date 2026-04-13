@@ -94,7 +94,7 @@
 				<a
 					href="/game/{event.id}"
 					class="big-year-cell group
-						{event.isMarquee ? 'game-marquee' : soldOut ? 'game-soldout' : 'game-regular'}
+						{event.isMarquee ? 'game-marquee' : counts.restricted > 0 && soldOut ? 'game-restricted' : soldOut ? 'game-soldout' : 'game-regular'}
 						{past ? 'opacity-40' : ''}
 						{isTodayCell ? 'today-ring' : ''}"
 					title="vs {event.opponent} · {event.time}{counts.confirmed > 0 ? ` · ${counts.confirmed}/4 seats` : ''}{promos.length > 0 ? ` · ${promos.map(p => p.name).join(', ')}` : ''}"
@@ -234,6 +234,35 @@
 		height: 3.5px;
 		border-radius: 50%;
 		flex-shrink: 0;
+	}
+
+	.game-restricted {
+		background: var(--color-graphite);
+		border-left: 2px solid color-mix(in srgb, var(--color-graphite) 70%, black);
+		opacity: 0.6;
+	}
+
+	.game-restricted .day-weekday {
+		color: white;
+		opacity: 0.7;
+	}
+
+	.game-restricted .day-number {
+		color: white;
+	}
+
+	.game-restricted .day-opponent {
+		color: white;
+	}
+
+	.game-restricted:hover {
+		background: color-mix(in srgb, var(--color-graphite) 80%, black);
+		opacity: 0.8;
+	}
+
+	.game-restricted .month-badge {
+		background: var(--color-yellow);
+		color: var(--color-graphite);
 	}
 
 	.game-soldout {

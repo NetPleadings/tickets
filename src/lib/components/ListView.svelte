@@ -89,8 +89,15 @@
 									<div class="w-2.5 h-2.5 rounded-full {seatDotColor(si, counts)} transition-transform group-hover:scale-110"></div>
 								{/each}
 							</div>
-							{#if soldOut}
+							{#if counts.restricted > 0 && counts.restricted >= event.totalSeats}
+								<span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-graphite/10 text-graphite">Restricted</span>
+							{:else if counts.restricted > 0 && soldOut}
+								<span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-graphite/10 text-graphite">Restricted</span>
+							{:else if soldOut}
 								<span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-declined/15 text-declined">Sold Out</span>
+							{:else if counts.restricted > 0 && !past}
+								<span class="text-[10px] font-semibold text-confirmed font-body">{available} open</span>
+								<span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-graphite/10 text-graphite">Restricted</span>
 							{:else if available > 0 && !past}
 								<span class="text-[10px] font-semibold text-confirmed font-body">{available} open</span>
 							{/if}

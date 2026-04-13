@@ -71,9 +71,11 @@
 						class="block rounded-md px-1.5 py-1 mb-0.5 text-[11px] leading-tight transition-all hover:scale-[1.02] hover:shadow-sm
 							{ev.isMarquee
 								? 'bg-jays-navy text-white hover:bg-jays-blue'
-								: soldOut
-									? 'bg-declined/20 text-declined hover:bg-declined/30'
-									: 'bg-jays-light text-jays-navy hover:bg-jays-blue/20'}
+								: counts.restricted > 0 && soldOut
+									? 'bg-graphite/15 text-graphite hover:bg-graphite/25'
+									: soldOut
+										? 'bg-declined/20 text-declined hover:bg-declined/30'
+										: 'bg-jays-light text-jays-navy hover:bg-jays-blue/20'}
 							{past ? 'opacity-50' : ''}"
 					>
 						<div class="font-semibold truncate">
