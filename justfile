@@ -16,6 +16,17 @@ setup-bq:
         --member="serviceAccount:tickets-runtime@minutebox-marketing.iam.gserviceaccount.com" \
         --role="roles/bigquery.jobUser" --quiet
 
+# Create BigQuery tables for ticket banking & exchange system
+setup-banking-bq:
+    bq --project_id=minutebox-marketing mk --table tickets.ticket_bank_inventory \
+        id:STRING,source_event_id:STRING,source_game_date:STRING,ticket_class:STRING,section:STRING,row:STRING,seat:STRING,quantity:INTEGER,status:STRING,banked_by:STRING,banked_at:TIMESTAMP,notes:STRING,created_at:TIMESTAMP,updated_at:TIMESTAMP
+    bq --project_id=minutebox-marketing mk --table tickets.ticket_exchange_rules \
+        id:STRING,name:STRING,from_ticket_class:STRING,from_quantity:INTEGER,to_ticket_class:STRING,to_quantity:INTEGER,active:BOOLEAN,notes:STRING,created_by:STRING,created_at:TIMESTAMP,updated_at:TIMESTAMP
+    bq --project_id=minutebox-marketing mk --table tickets.ticket_exchange_transactions \
+        id:STRING,rule_id:STRING,rule_name:STRING,target_event_id:STRING,target_game_date:STRING,from_ticket_class:STRING,from_quantity:INTEGER,to_ticket_class:STRING,to_quantity:INTEGER,status:STRING,performed_by:STRING,notes:STRING,created_at:TIMESTAMP
+    bq --project_id=minutebox-marketing mk --table tickets.ticket_exchange_transaction_items \
+        id:STRING,transaction_id:STRING,bank_inventory_id:STRING,quantity_consumed:INTEGER,created_at:TIMESTAMP
+
 # Migrate local allocations.json into BigQuery
 migrate:
     bun scripts/migrate.ts
